@@ -1,0 +1,50 @@
+# Secrets & environment
+.env
+.env.*
+*.env
+secrets/
+credentials/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+*.log
+
+# Node / Frontend
+node_modules/
+admin_frontend/dist/
+admin_frontend/.next/
+board/node_modules/
+board/dist/
+
+# Docker
+*.override.yml
+
+# Database
+*.sqlite
+*.db
+dump.sql
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Compiled / build artifacts
+*.pyc
+*.class
+*.o

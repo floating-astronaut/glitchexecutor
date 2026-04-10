@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GlitchExecutor — 9 AI Models. One Trading Edge.</title>
+  <meta name="description" content="9-model AI ensemble analyzing crypto markets 24/7. Signals delivered via Telegram. Auto-execute on 100+ supported exchanges. Start your free trial today.">
+  <meta property="og:title" content="GlitchExecutor — 9 AI Models. One Trading Edge.">
+  <meta property="og:description" content="9-model AI ensemble delivering crypto signals via Telegram. Auto-execute on Binance, OKX, Bybit, KuCoin, and 100+ more exchanges.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://glitchexecutor.com">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            g: {
+              bg:      '#0a0a0a',
+              card:    '#111318',
+              card2:   '#0d1117',
+              border:  '#1e2330',
+              border2: '#2a3040',
+              accent:  '#00ff88',
+              accentd: '#00cc6a',
+              muted:   '#555566',
+              text:    '#cccccc',
+              dim:     '#888899',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { overflow-x: hidden; max-width: 100vw; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0a0a0a; color: #cccccc; overflow-x: hidden; max-width: 100vw; overflow-wrap: break-word; word-wrap: break-word; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Green accent */
+    .text-accent { color: #00ff88; }
+    .glow-text   { text-shadow: 0 0 20px rgba(0,255,136,0.4); }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Card effects */
+    .card-glow { box-shadow: 0 0 0 1px #1e2330, 0 4px 24px rgba(0,0,0,0.4); }
+    .card-glow:hover { box-shadow: 0 0 0 1px rgba(0,255,136,0.2), 0 8px 40px rgba(0,255,136,0.06); transition: box-shadow 0.3s ease; }
+    .accent-glow { box-shadow: 0 0 30px rgba(0,255,136,0.2); }
+    .accent-glow:hover { box-shadow: 0 0 50px rgba(0,255,136,0.35); }
+
+    /* Force left-align inside card grids only */
+    .card-grid .card-glow, .card-grid [class*="rounded-xl"], .card-grid [class*="rounded-2xl"] { text-align: left; }
+    .card-grid { text-align: left; }
+
+    /* Hero ambient */
+    .hero-glow { background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,255,136,0.06) 0%, transparent 70%); }
+
+    /* Badge */
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 14px; border-radius: 9999px; font-size: 13px;
+      font-weight: 600; letter-spacing: 0.3px;
+      background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25); color: #00ff88;
+    }
+    @media (max-width: 640px) { .badge { font-size: 12px; padding: 4px 12px; } }
+
+    /* Dot */
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* Billing toggle */
+    .toggle-bg { background: #1e2330; border-radius: 9999px; padding: 4px; display: inline-flex; gap: 3px; }
+    .toggle-btn {
+      min-height: 40px; padding: 8px 24px; border-radius: 9999px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; color: #888; border: none; background: transparent;
+      white-space: nowrap;
+    }
+    .toggle-btn.active { background: #00ff88; color: #0a0a0a; }
+    @media (max-width: 480px) {
+      .toggle-btn { padding: 8px 16px; font-size: 13px; }
+    }
+
+    /* Pricing "POPULAR" badge */
+    .plan-popular { border-color: #00ff88 !important; box-shadow: 0 0 0 1px rgba(0,255,136,0.3), 0 8px 40px rgba(0,255,136,0.1); }
+
+    /* FAQ accordion */
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+    .faq-item.open .faq-answer { max-height: 400px; }
+    .faq-chevron { transition: transform 0.3s ease; flex-shrink: 0; }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+
+    /* Fade-in on scroll — items in viewport on load get .visible immediately via JS */
+    .fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.55s ease, transform 0.55s ease; }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    /* Fallback: ensure content is visible if JS hasn't run yet */
+    @media (prefers-reduced-motion: reduce) { .fade-up { opacity: 1; transform: none; } }
+
+    /* Number glow */
+    .stat-num { color: #00ff88; text-shadow: 0 0 30px rgba(0,255,136,0.3); }
+
+    /* Mobile menu */
+    #mobile-menu { z-index: 49; max-width: 100vw; }
+
+    /* Ensure full-width buttons on mobile */
+    @media (max-width: 639px) {
+      .hero-cta-wrap a, .hero-cta-wrap button { width: 100%; }
+    }
+
+    /* Nav link touch targets */
+    .nav-link { padding: 8px 4px; min-height: 44px; display: inline-flex; align-items: center; }
+
+    /* ── Mobile-specific fixes ──────────────────────────────────────────── */
+    @media (max-width: 639px) {
+      /* Prevent horizontal overflow from any element */
+      section, div, footer, nav { max-width: 100vw; }
+
+      /* Hero: account for fixed nav height */
+      .hero-section { padding-top: 72px !important; min-height: 100svh; }
+
+      /* Ensure code blocks don't overflow */
+      code { font-size: 11px !important; word-break: break-all; }
+
+      /* Pricing cards: tighter padding on mobile */
+      .pricing-card { padding: 20px !important; }
+
+      /* Stats bar: smaller text on tiny screens */
+      .stat-num { font-size: 1.5rem !important; }
+
+      /* Modal: full width on mobile with safe area */
+      #trial-modal > div { margin: 0 8px; max-height: 90vh; overflow-y: auto; }
+
+      /* FAQ buttons: ensure text wraps properly */
+      .faq-item button span { word-break: normal; }
+
+      /* Footer grid: single column on mobile */
+      footer .grid { gap: 2rem !important; }
+    }
+
+    /* Small phones (< 375px) */
+    @media (max-width: 374px) {
+      h1 { font-size: 2rem !important; }
+      h2 { font-size: 1.5rem !important; }
+      .badge { font-size: 11px; padding: 3px 10px; }
+    }
+  </style>
+
+  <!-- ═══ Google Analytics 4 ═══════════════════════════════════════════════ -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4FTFP3NEQV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-4FTFP3NEQV', { send_page_view: true });
+  </script>
+
+  <!-- ═══ Meta (Facebook) Pixel ════════════════════════════════════════════ -->
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+    (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1238175855166679');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1238175855166679&ev=PageView&noscript=1"/></noscript>
+
+  <!-- ═══ TikTok Pixel ══════════════════════════════════════════════════════ -->
+  <script>
+    !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];
+    ttq.methods=['page','track','identify','instances','debug','on','off','once',
+    'ready','alias','group','enableCookie','disableCookie','holdConsent',
+    'revokeConsent','grantConsent'];
+    ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(
+    Array.prototype.slice.call(arguments,0)))}};
+    for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);
+    ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)
+    ttq.setAndDefer(e,ttq.methods[n]);return e};
+    ttq.load=function(e,n){var r='https://analytics.tiktok.com/i18n/pixel/events.js',
+    o=n&&n.partner;ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=r;ttq._t=ttq._t||{};
+    ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};
+    n=document.createElement('script');n.type='text/javascript';n.async=!0;
+    n.src=r+'?sdkid='+e+'&lib='+t;
+    var a=document.getElementsByTagName('script')[0];a.parentNode.insertBefore(n,a)};
+    ttq.load('D6BP003C77U1CE9DD290');
+    ttq.page();
+    }(window,document,'ttq');
+  </script>
+</head>
+
+<body class="antialiased">
+
+<!-- ═══ NAV ═══════════════════════════════════════════════════════════════ -->
+<nav class="fixed top-0 left-0 right-0 z-50" style="background:rgba(10,10,10,0.9);backdrop-filter:blur(16px);border-bottom:1px solid #1e2330;">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-2.5 flex-shrink-0">
+        <img src="logo.png" alt="GlitchExecutor" class="h-9 w-auto">
+        <span class="text-lg font-bold text-white">Glitch <span class="text-accent">Executor</span></span>
+      </a>
+
+      <!-- Desktop nav links -->
+      <div class="hidden md:flex items-center gap-1">
+        <a href="#how-it-works" class="nav-link text-sm text-g-dim hover:text-white transition-colors px-3">How It Works</a>
+        <a href="#models"        class="nav-link text-sm text-g-dim hover:text-white transition-colors px-3">9 Models</a>
+        <a href="#pricing"       class="nav-link text-sm text-g-dim hover:text-white transition-colors px-3">Pricing</a>
+        <a href="#faq"           class="nav-link text-sm text-g-dim hover:text-white transition-colors px-3">FAQ</a>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Admin login link (desktop) -->
+        <a href="https://dashboard.glitchexecutor.com/login"
+           class="hidden md:inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+           style="color:#6e7681;border:1px solid #1e2330;">
+          Login
+        </a>
+        <!-- Desktop CTA -->
+        <button onclick="openTrialModal('general')"
+           class="hidden md:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg font-bold text-sm transition-all accent-glow"
+           style="background:#00ff88;color:#0a0a0a;min-height:44px;border:none;cursor:pointer;">
+          Start Free Trial
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5-5 5M6 12h12"/></svg>
+        </button>
+
+        <!-- Mobile hamburger -->
+        <button id="menu-btn"
+                class="md:hidden flex items-center justify-center w-11 h-11 rounded-xl transition-colors"
+                style="border:1px solid #1e2330;color:#ccc;"
+                onclick="toggleMenu()"
+                aria-label="Open menu">
+          <svg id="menu-icon-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+          <svg id="menu-icon-close" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile menu drawer -->
+  <div id="mobile-menu" class="hidden md:hidden border-t" style="background:#0d1117;border-color:#1e2330;">
+    <div class="px-4 py-3 space-y-1">
+      <a href="#how-it-works" onclick="closeMenu()" class="flex items-center px-4 py-3.5 rounded-xl text-sm font-medium text-g-text hover:text-white transition-colors" style="min-height:48px;">How It Works</a>
+      <a href="#models"        onclick="closeMenu()" class="flex items-center px-4 py-3.5 rounded-xl text-sm font-medium text-g-text hover:text-white transition-colors" style="min-height:48px;">9 AI Models</a>
+      <a href="#pricing"       onclick="closeMenu()" class="flex items-center px-4 py-3.5 rounded-xl text-sm font-medium text-g-text hover:text-white transition-colors" style="min-height:48px;">Pricing</a>
+      <a href="#faq"           onclick="closeMenu()" class="flex items-center px-4 py-3.5 rounded-xl text-sm font-medium text-g-text hover:text-white transition-colors" style="min-height:48px;">FAQ</a>
+      <div class="pt-3 pb-2 border-t space-y-2" style="border-color:#1e2330;">
+        <a href="https://dashboard.glitchexecutor.com/login" onclick="closeMenu()"
+           class="flex items-center justify-center w-full py-3.5 rounded-xl text-sm font-medium transition-colors"
+           style="border:1px solid #1e2330;color:#6e7681;min-height:48px;">
+          Login
+        </a>
+        <button onclick="openTrialModal('general'); closeMenu();"
+           class="flex items-center justify-center w-full py-4 rounded-xl font-bold text-sm transition-all accent-glow"
+           style="background:#00ff88;color:#0a0a0a;min-height:52px;border:none;cursor:pointer;">
+          Start Free Trial →
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ═══ HERO ═══════════════════════════════════════════════════════════════ -->
+<section class="hero-section relative pt-20 pb-12 sm:pt-24 sm:pb-16 overflow-hidden" style="background:#0a0a0a;min-height:100svh;display:flex;align-items:center;">
+  <div class="absolute inset-0 hero-glow pointer-events-none"></div>
+  <div class="absolute top-0 right-0 w-64 sm:w-96 lg:w-[600px] h-64 sm:h-96 lg:h-[600px] pointer-events-none" style="background:radial-gradient(ellipse 50% 50% at 80% 20%, rgba(0,204,255,0.03) 0%, transparent 70%);max-width:100%;"></div>
+
+  <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+
+      <!-- Left: copy -->
+      <div class="space-y-6 sm:space-y-7 text-center md:text-left">
+
+        <div class="flex justify-center md:justify-start">
+          <div class="badge">
+            <span class="dot" style="background:#00ff88;animation:pulse 2s infinite;"></span>
+            9 AI models running live right now
+          </div>
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-white">
+          9 AI Models.<br>
+          <span class="gradient-text glow-text">One Trading Edge.</span>
+        </h1>
+
+        <p class="text-base sm:text-lg md:text-xl text-g-text leading-relaxed mx-auto md:mx-0 max-w-xl">
+          Stop staring at charts. Get consensus signals from 9 specialized AI models
+          — delivered to your <span class="text-accent font-semibold">Telegram</span>
+          in under 5 seconds. On Pro and Elite, it auto-executes the trade too.
+          Works with <span class="text-accent font-semibold">100+ exchanges</span>.
+        </p>
+
+        <div class="hero-cta-wrap flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+          <button onclick="openTrialModal('general')"
+             class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl font-bold text-base sm:text-lg transition-all accent-glow"
+             style="background:#00ff88;color:#0a0a0a;min-height:52px;border:none;cursor:pointer;">
+            Start Free Trial
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5-5 5M6 12h12"/></svg>
+          </button>
+          <a href="#how-it-works"
+             class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl font-semibold text-sm sm:text-base transition-all"
+             style="border:1px solid #2a3040;color:#ccc;min-height:52px;">
+            See How It Works
+          </a>
+        </div>
+
+        <!-- Social proof -->
+        <div class="pt-5 border-t" style="border-color:#1e2330;">
+          <div class="flex flex-wrap items-center gap-4 sm:gap-6 justify-center md:justify-start">
+            <div class="flex items-center gap-2">
+              <div class="flex -space-x-1.5">
+                <div class="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold" style="background:#1a2a3a;border-color:#0a0a0a;">T</div>
+                <div class="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold" style="background:#2a1a3a;border-color:#0a0a0a;">M</div>
+                <div class="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold" style="background:#1a3a2a;border-color:#0a0a0a;">R</div>
+              </div>
+              <span class="text-sm text-g-dim">Trusted by <span class="text-white font-semibold">500+</span> traders</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-sm text-g-dim">
+              <svg class="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <span class="text-white font-semibold">4.9</span> / 5 avg rating
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile/tablet signal preview (hidden on desktop where the big card shows) -->
+        <div class="lg:hidden rounded-xl p-4 sm:p-5" style="background:#111318;border:1px solid #1e2330;">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <div class="dot" style="background:#00ff88;animation:pulse 2s infinite;"></div>
+              <span class="font-mono text-sm font-bold text-white">BTC/USDT</span>
+              <span class="text-xs text-g-dim">· Binance</span>
+            </div>
+            <span class="px-2.5 py-1 rounded-lg font-mono text-xs font-bold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.3);">LONG ↑ 87%</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 mb-3">
+            <div class="rounded-lg p-2 text-center" style="background:#0d1117;">
+              <div class="font-mono text-xs font-bold text-accent">+0.82</div>
+              <div class="text-[10px] text-g-muted mt-0.5">Trend</div>
+            </div>
+            <div class="rounded-lg p-2 text-center" style="background:#0d1117;">
+              <div class="font-mono text-xs font-bold text-accent">+0.79</div>
+              <div class="text-[10px] text-g-muted mt-0.5">Volume</div>
+            </div>
+            <div class="rounded-lg p-2 text-center" style="background:#0d1117;">
+              <div class="font-mono text-xs font-bold text-accent">+0.68</div>
+              <div class="text-[10px] text-g-muted mt-0.5">Sentiment</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 border-t pt-2.5" style="border-color:#1e2330;">
+            <svg class="w-3.5 h-3.5 text-accent flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+            <span class="text-xs text-g-dim">Signal delivered via <span class="text-white">Telegram</span> · <span class="font-mono text-accent">14:32:07</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: full signal card (desktop lg only) -->
+      <div class="relative hidden lg:flex flex-col gap-4 items-end">
+        <div class="w-full max-w-sm rounded-2xl overflow-hidden card-glow" style="background:#111318;border:1px solid #1e2330;">
+          <!-- Terminal header -->
+          <div class="flex items-center gap-2 px-4 py-3" style="background:#0d1117;border-bottom:1px solid #1e2330;">
+            <div class="dot" style="background:#ff5f57;"></div>
+            <div class="dot" style="background:#febc2e;"></div>
+            <div class="dot" style="background:#28c840;"></div>
+            <span class="ml-3 font-mono text-xs text-g-muted">GlitchExecutor — ensemble signal</span>
+          </div>
+          <div class="p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-mono text-2xl font-bold text-white">BTC/USDT</div>
+                <div class="text-xs text-g-dim mt-0.5">Binance · 5-min candle</div>
+              </div>
+              <div class="px-3 py-1.5 rounded-lg font-mono text-sm font-bold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.3);">LONG ↑</div>
+            </div>
+            <div class="space-y-2">
+              <div class="text-xs font-semibold text-g-dim uppercase tracking-wider mb-3">9-Model Consensus</div>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="rounded-lg p-2 text-center" style="background:#0d1117;"><div class="font-mono text-xs font-bold text-accent">+0.82</div><div class="text-[10px] text-g-muted mt-0.5">Trend</div></div>
+                <div class="rounded-lg p-2 text-center" style="background:#0d1117;"><div class="font-mono text-xs font-bold text-accent">+0.74</div><div class="text-[10px] text-g-muted mt-0.5">Momentum</div></div>
+                <div class="rounded-lg p-2 text-center" style="background:#0d1117;"><div class="font-mono text-xs font-bold text-accent">+0.68</div><div class="text-[10px] text-g-muted mt-0.5">Sentiment</div></div>
+                <div class="rounded-lg p-2 text-center" style="background:#0d1117;"><div class="font-mono text-xs font-bold" style="color:#ff9944;">+0.41</div><div class="text-[10px] text-g-muted mt-0.5">Mean Rev</div></div>
+                <div class="rounded-lg p-2 text-center" style="background:#0d1117;"><div class="font-mono text-xs font-bold text-accent">+0.79</div><div class="text-[10px] text-g-muted mt-0.5">Volume</div></div>
+                <div class="rounded-lg p-2 text-center" style="background:#0d1117;"><div class="font-mono text-xs font-bold text-accent">+0.85</div><div class="text-[10px] text-g-muted mt-0.5">Multi-TF</div></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1.5">
+                <span class="text-g-dim">Ensemble confidence</span>
+                <span class="font-mono font-bold text-accent">87%</span>
+              </div>
+              <div class="h-1.5 rounded-full" style="background:#1e2330;">
+                <div class="h-1.5 rounded-full" style="width:87%;background:linear-gradient(90deg,#00cc6a,#00ff88);"></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 pt-2 border-t" style="border-color:#1e2330;">
+              <svg class="w-4 h-4 text-accent flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              <span class="text-xs text-g-dim">Signal via <span class="text-white">Telegram</span> · <span class="font-mono text-accent">14:32:07</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 px-4 py-2.5 rounded-xl self-start ml-4" style="background:#111318;border:1px solid #1e2330;">
+          <div class="dot" style="background:#00ff88;animation:pulse 2s infinite;"></div>
+          <span class="text-sm text-g-text">Auto-executing on <span class="text-white font-semibold">Binance</span></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ STATS BAR ══════════════════════════════════════════════════════════ -->
+<div style="background:#0d1117;border-top:1px solid #1e2330;border-bottom:1px solid #1e2330;">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 text-center">
+      <div>
+        <div class="font-mono text-2xl sm:text-3xl md:text-4xl font-bold stat-num mb-1">9</div>
+        <div class="text-xs sm:text-sm text-g-dim">AI Models in Ensemble</div>
+      </div>
+      <div>
+        <div class="font-mono text-2xl sm:text-3xl md:text-4xl font-bold stat-num mb-1">100+</div>
+        <div class="text-xs sm:text-sm text-g-dim">Supported Exchanges</div>
+      </div>
+      <div>
+        <div class="font-mono text-2xl sm:text-3xl md:text-4xl font-bold stat-num mb-1">24/7</div>
+        <div class="text-xs sm:text-sm text-g-dim">Market Monitoring</div>
+      </div>
+      <div>
+        <div class="font-mono text-2xl sm:text-3xl md:text-4xl font-bold stat-num mb-1">&lt;5s</div>
+        <div class="text-xs sm:text-sm text-g-dim">Signal to Telegram</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ THE PROBLEM ══════════════════════════════════════════════════════════ -->
+<section class="py-16 sm:py-20 lg:py-24" style="background:#0a0a0a;">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <div class="fade-up">
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-5 leading-tight">
+        One indicator<br><span class="gradient-text">isn't an edge.</span>
+      </h2>
+      <p class="text-g-text text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mb-12">
+        RSI says overbought. MACD says buy. Sentiment is neutral. Which one do you trust?
+        Most traders pick one and hope. That's not a strategy — that's a coin flip.
+      </p>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-4 sm:gap-5 text-left card-grid">
+      <div class="rounded-xl p-5 sm:p-6 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-3xl leading-none">😤</span>
+          <h3 class="font-bold text-white text-sm sm:text-base">Missing the entry</h3>
+        </div>
+        <p class="text-g-dim text-sm leading-relaxed">The best setups form at 3am. You weren't watching — and the move ran without you.</p>
+      </div>
+      <div class="rounded-xl p-5 sm:p-6 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-3xl leading-none">😰</span>
+          <h3 class="font-bold text-white text-sm sm:text-base">Conflicting signals</h3>
+        </div>
+        <p class="text-g-dim text-sm leading-relaxed">Different indicators point in different directions. You second-guess every trade and either freeze or overcommit.</p>
+      </div>
+      <div class="rounded-xl p-5 sm:p-6 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-3xl leading-none">🎭</span>
+          <h3 class="font-bold text-white text-sm sm:text-base">Emotional decisions</h3>
+        </div>
+        <p class="text-g-dim text-sm leading-relaxed">FOMO on the pump. Panic on the dip. The market knows exactly how to shake you out first.</p>
+      </div>
+    </div>
+    <div class="mt-10 fade-up">
+      <p class="text-g-dim text-sm sm:text-base">GlitchExecutor runs <span class="text-white font-semibold">9 specialized models in parallel</span> — then aggregates them into a single, high-confidence signal. <span class="text-accent font-semibold">No noise. No second-guessing.</span></p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ HOW IT WORKS ═══════════════════════════════════════════════════════ -->
+<section id="how-it-works" class="py-16 sm:py-20 lg:py-24" style="background:#0a0a0a;border-top:1px solid #1e2330;">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center max-w-2xl mx-auto mb-12 sm:mb-16 fade-up">
+      <div class="badge mb-5 mx-auto">Setup in minutes</div>
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+        From Zero to <span class="gradient-text">AI Trading</span><br>in 3 Steps
+      </h2>
+      <p class="text-g-text text-base sm:text-lg">No coding. No complex setup. Just connect and go.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 max-w-5xl mx-auto text-left card-grid">
+
+      <div class="relative rounded-2xl p-5 sm:p-7 card-glow fade-up" style="background:#111318;border:1px solid #1e2330;">
+        <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-sm" style="background:#00ff88;color:#0a0a0a;">1</div>
+        <div class="flex gap-4">
+          <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+          </div>
+          <div>
+            <h3 class="text-lg sm:text-xl font-bold text-white mb-2">Connect Your Exchange</h3>
+            <p class="text-g-text text-sm leading-relaxed">Send <code class="font-mono text-accent text-xs sm:text-sm px-1.5 py-0.5 rounded" style="background:#0d1117;word-break:break-all;">/connect_exchange</code> in Telegram. Paste your API key. Works with Binance, OKX, Bybit, KuCoin, and 100+ more via CCXT.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative rounded-2xl p-5 sm:p-7 card-glow fade-up" style="background:#111318;border:1px solid #1e2330;">
+        <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-sm" style="background:#00ff88;color:#0a0a0a;">2</div>
+        <div class="flex gap-4">
+          <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          </div>
+          <div>
+            <h3 class="text-lg sm:text-xl font-bold text-white mb-2">Type Any Crypto Symbol</h3>
+            <p class="text-g-text text-sm leading-relaxed">Message the bot any ticker — <code class="font-mono text-accent text-xs sm:text-sm px-1.5 py-0.5 rounded" style="background:#0d1117;">BTC</code>, <code class="font-mono text-accent text-xs sm:text-sm px-1.5 py-0.5 rounded" style="background:#0d1117;">ETH</code>, <code class="font-mono text-accent text-xs sm:text-sm px-1.5 py-0.5 rounded" style="background:#0d1117;">SOL</code>. All 9 models analyze it simultaneously and return a consensus signal within seconds.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative rounded-2xl p-5 sm:p-7 card-glow fade-up sm:col-span-2 lg:col-span-1" style="background:#111318;border:1px solid #1e2330;">
+        <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-sm" style="background:#00ff88;color:#0a0a0a;">3</div>
+        <div class="flex gap-4">
+          <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </div>
+          <div>
+            <h3 class="text-lg sm:text-xl font-bold text-white mb-2">AI Executes Automatically</h3>
+            <p class="text-g-text text-sm leading-relaxed">On Pro/Elite, trades execute automatically based on the signal. Stop-loss and take-profit are set for you. You get a Telegram confirmation for every trade.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ 9 MODEL ENSEMBLE ════════════════════════════════════════════════════ -->
+<section id="models" style="background:#0d1117;border-top:1px solid #1e2330;border-bottom:1px solid #1e2330;">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+    <div class="text-center max-w-2xl mx-auto mb-12 sm:mb-16 fade-up">
+      <div class="badge mb-5 mx-auto">The technology</div>
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+        Meet the <span class="gradient-text">9-Model Ensemble</span>
+      </h2>
+      <p class="text-g-text text-base sm:text-lg">Each model specializes in a different market lens. They vote. The ensemble decides.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-left card-grid">
+
+      <div class="rounded-xl p-4 sm:p-5 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);">
+            <span class="font-mono text-xs font-bold text-accent">01</span>
+          </div>
+          <div>
+            <div class="font-bold text-white mb-1 text-sm sm:text-base">Trend Follower</div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">Identifies sustained directional moves using EMA crossovers and MACD divergence. Built to ride multi-hour trends.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl p-4 sm:p-5 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);">
+            <span class="font-mono text-xs font-bold text-accent">02</span>
+          </div>
+          <div>
+            <div class="font-bold text-white mb-1 text-sm sm:text-base">Mean Reverter</div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">Spots overextended price moves using RSI extremes and Bollinger Band deviations. Catches bounces before they happen.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl p-4 sm:p-5 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);">
+            <span class="font-mono text-xs font-bold text-accent">03</span>
+          </div>
+          <div>
+            <div class="font-bold text-white mb-1 text-sm sm:text-base">Momentum Hunter</div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">Captures breakout energy and acceleration. Measures rate-of-change to enter trades right as momentum builds.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl p-4 sm:p-5 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);">
+            <span class="font-mono text-xs font-bold text-accent">04</span>
+          </div>
+          <div>
+            <div class="font-bold text-white mb-1 text-sm sm:text-base">ML Predictor</div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">Machine learning price prediction trained on thousands of historical crypto patterns. Probability-weighted short-term forecasts.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl p-4 sm:p-5 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);">
+            <span class="font-mono text-xs font-bold text-accent">05</span>
+          </div>
+          <div>
+            <div class="font-bold text-white mb-1 text-sm sm:text-base">Multi-TF Align</div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">Checks for confluence across 1m, 5m, 1h, and 4h candles. Only fires when multiple timeframes agree — fewer false signals.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl p-4 sm:p-5 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);">
+            <span class="font-mono text-xs font-bold text-accent">06</span>
+          </div>
+          <div>
+            <div class="font-bold text-white mb-1 text-sm sm:text-base">Volume Profiler</div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">Identifies high-volume price nodes and imbalances. Volume tells the truth about where institutions are positioned.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl p-4 sm:p-5 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);">
+            <span class="font-mono text-xs font-bold text-accent">07</span>
+          </div>
+          <div>
+            <div class="font-bold text-white mb-1 text-sm sm:text-base">Session Analyst</div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">Optimizes signal timing based on Asia, London, and New York session overlaps. Context-aware — knows when the market is most liquid.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl p-4 sm:p-5 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);">
+            <span class="font-mono text-xs font-bold text-accent">08</span>
+          </div>
+          <div>
+            <div class="font-bold text-white mb-1 text-sm sm:text-base">Sentiment AI</div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">LLM-powered real-time sentiment from news, social, and Fear &amp; Greed index. Understand the crowd before you trade against it.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9th — highlighted -->
+      <div class="rounded-xl p-4 sm:p-5 fade-up" style="background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.3);">
+        <div class="flex items-start gap-3 sm:gap-4">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.15);border:1px solid rgba(0,255,136,0.4);">
+            <span class="font-mono text-xs font-bold text-accent">09</span>
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <div class="font-bold text-white text-sm sm:text-base">Signal Aggregator</div>
+              <span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background:rgba(0,255,136,0.15);color:#00ff88;">Core</span>
+            </div>
+            <div class="text-xs sm:text-sm text-g-dim leading-relaxed">Weighted ensemble scoring — combines all 8 models into a single LONG / SHORT / HOLD decision. Applies confidence thresholds so only high-quality signals reach you.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ KEY FEATURES ═══════════════════════════════════════════════════════ -->
+<section class="py-16 sm:py-20 lg:py-24" style="background:#0a0a0a;">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center max-w-2xl mx-auto mb-12 sm:mb-16 fade-up">
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+        Your Edge. <span class="gradient-text">Running 24/7.</span>
+      </h2>
+      <p class="text-g-text text-base sm:text-lg">While you sleep, 9 models watch the market.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-4 sm:gap-5 max-w-5xl mx-auto text-left card-grid">
+
+      <div class="flex gap-4 sm:gap-5 p-5 sm:p-6 rounded-2xl fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 text-accent" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-white mb-2">Telegram Native</h3>
+          <p class="text-g-text text-sm leading-relaxed">Signals, confirmations, and commands — all in Telegram. No apps to install. No dashboards to check. The AI comes to you.</p>
+        </div>
+      </div>
+
+      <div class="flex gap-4 sm:gap-5 p-5 sm:p-6 rounded-2xl fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+        </div>
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-white mb-2">100+ Exchanges via CCXT</h3>
+          <p class="text-g-text text-sm leading-relaxed">Connect Binance, OKX, Bybit, KuCoin, Coinbase, Bitget, MEXC, Gate.io, Kraken and more. If CCXT supports it, GlitchExecutor supports it.</p>
+        </div>
+      </div>
+
+      <div class="flex gap-4 sm:gap-5 p-5 sm:p-6 rounded-2xl fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+        </div>
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-white mb-2">Your Keys, Your Exchange</h3>
+          <p class="text-g-text text-sm leading-relaxed">Your funds never leave your exchange. We use API keys with trade-only permissions — no withdrawal access ever. Encrypted and stored securely.</p>
+        </div>
+      </div>
+
+      <div class="flex gap-4 sm:gap-5 p-5 sm:p-6 rounded-2xl fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-white mb-2">Testnet First, Live When Ready</h3>
+          <p class="text-g-text text-sm leading-relaxed">Pro plan auto-executes on Binance testnet — zero real money risk while you validate. Upgrade to Elite to deploy a live bot with full confidence.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ PRICING ═════════════════════════════════════════════════════════════ -->
+<section id="pricing" style="background:#0d1117;border-top:1px solid #1e2330;border-bottom:1px solid #1e2330;">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+    <div class="text-center max-w-2xl mx-auto mb-10 sm:mb-12 fade-up">
+      <div class="badge mb-5 mx-auto">7-day free trial · No credit card required</div>
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+        Simple, Transparent <span class="gradient-text">Pricing</span>
+      </h2>
+      <p class="text-g-text text-base sm:text-lg mb-8">Start free. Scale as your trading grows.</p>
+
+      <!-- Billing toggle -->
+      <div class="flex justify-center">
+        <div class="toggle-bg">
+          <button class="toggle-btn active" id="btn-monthly" onclick="setBilling('monthly')">Monthly</button>
+          <button class="toggle-btn" id="btn-yearly" onclick="setBilling('yearly')">
+            Yearly
+            <span class="ml-1 text-xs px-1.5 py-0.5 rounded-full font-bold" style="background:#00ff88;color:#0a0a0a;">Save 20%</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing grid: 1 col mobile, 1 col tablet, 3 col lg -->
+    <div class="grid lg:grid-cols-3 gap-5 sm:gap-6 max-w-5xl mx-auto text-left card-grid">
+
+      <!-- Starter -->
+      <div class="rounded-2xl p-6 sm:p-7 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="mb-6">
+          <div class="text-xs font-bold tracking-widest text-g-dim uppercase mb-1">⭐ Starter</div>
+          <div class="text-xs text-g-muted mb-2">Learn to read AI signals</div>
+          <div class="flex items-end gap-2 mb-1">
+            <span class="text-3xl sm:text-4xl font-extrabold font-mono text-white" id="price-starter">$49</span>
+            <span class="text-g-dim mb-1 text-sm">/mo</span>
+          </div>
+          <div class="text-xs text-g-muted" id="billing-note-starter">billed monthly</div>
+        </div>
+        <ul class="space-y-3 mb-7 text-sm">
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            <span><strong class="text-white">30 analyses/day</strong> from the ensemble</span>
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            BTC, ETH, SOL &amp; XRP
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            Portfolio view &amp; signals
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            Telegram delivery
+          </li>
+          <li class="flex items-start gap-2.5" style="color:#444;">
+            <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            Auto-execution
+          </li>
+        </ul>
+        <button onclick="openTrialModal('starter')"
+          class="w-full py-3.5 rounded-xl font-bold text-sm transition-all"
+          style="border:1px solid #2a3040;color:#ccc;min-height:48px;cursor:pointer;">
+          Start My Free Trial
+        </button>
+      </div>
+
+      <!-- Pro — POPULAR -->
+      <div class="rounded-2xl p-6 sm:p-7 relative fade-up plan-popular" style="background:#111318;border:2px solid #00ff88;">
+        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold whitespace-nowrap" style="background:#00ff88;color:#0a0a0a;">
+          MOST POPULAR
+        </div>
+        <div class="mb-6">
+          <div class="text-xs font-bold tracking-widest text-g-dim uppercase mb-1">🤖 Pro</div>
+          <div class="text-xs text-g-muted mb-2">Validate strategies risk-free on testnet</div>
+          <div class="flex items-end gap-2 mb-1">
+            <span class="text-3xl sm:text-4xl font-extrabold font-mono text-white" id="price-pro">$149</span>
+            <span class="text-g-dim mb-1 text-sm">/mo</span>
+          </div>
+          <div class="text-xs text-g-muted" id="billing-note-pro">billed monthly</div>
+        </div>
+        <ul class="space-y-3 mb-7 text-sm">
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            <strong class="text-white">100 analyses/day</strong>
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            All supported assets
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            <strong class="text-white">Testnet auto-execution</strong>
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            100+ exchanges
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            Priority support
+          </li>
+        </ul>
+        <button onclick="openTrialModal('pro')"
+          class="w-full py-3.5 rounded-xl font-bold text-sm transition-all accent-glow"
+          style="background:#00ff88;color:#0a0a0a;min-height:48px;cursor:pointer;">
+          Start My Free Trial
+        </button>
+      </div>
+
+      <!-- Elite -->
+      <div class="rounded-2xl p-6 sm:p-7 fade-up card-glow" style="background:#111318;border:1px solid #1e2330;">
+        <div class="mb-6">
+          <div class="text-xs font-bold tracking-widest text-g-dim uppercase mb-1">🏢 Elite</div>
+          <div class="text-xs text-g-muted mb-2">Deploy a live bot. Trade while you sleep.</div>
+          <div class="flex items-end gap-2 mb-1">
+            <span class="text-3xl sm:text-4xl font-extrabold font-mono text-white" id="price-elite">$349</span>
+            <span class="text-g-dim mb-1 text-sm">/mo</span>
+          </div>
+          <div class="text-xs text-g-muted" id="billing-note-elite">billed monthly</div>
+        </div>
+        <ul class="space-y-3 mb-7 text-sm">
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            <strong class="text-white">Unlimited analyses</strong>
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            All supported assets
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            <strong class="text-white">Live bot deployment</strong>
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            100+ exchanges
+          </li>
+          <li class="flex items-start gap-2.5 text-g-text">
+            <svg class="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            Dedicated support
+          </li>
+        </ul>
+        <button onclick="openTrialModal('elite')"
+          class="w-full py-3.5 rounded-xl font-bold text-sm transition-all"
+          style="border:1px solid #2a3040;color:#ccc;min-height:48px;cursor:pointer;">
+          Start My Free Trial
+        </button>
+      </div>
+    </div>
+
+    <p class="text-center text-xs sm:text-sm text-g-muted mt-8">
+      7-day free trial &nbsp;·&nbsp; No credit card required &nbsp;·&nbsp; Cancel anytime via Telegram
+    </p>
+  </div>
+</section>
+
+
+<!-- ═══ EMAIL CAPTURE ═══════════════════════════════════════════════════════ -->
+<section class="py-16 sm:py-20" style="background:#0a0a0a;">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center fade-up">
+    <div class="rounded-2xl p-6 sm:p-8 md:p-10" style="background:#111318;border:1px solid #1e2330;">
+      <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center mx-auto mb-5 sm:mb-6" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.25);">
+        <svg class="w-6 h-6 sm:w-7 sm:h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-3">Get a Free Market Edge</h2>
+      <p class="text-g-text text-sm sm:text-base mb-7 leading-relaxed">
+        Join 500+ traders getting weekly strategy guides, AI signal breakdowns, and early access to new models — completely free.
+      </p>
+
+      <form id="email-form" onsubmit="submitEmail(event)">
+        <div class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+          <input
+            type="email"
+            id="email-input"
+            placeholder="your@email.com"
+            required
+            class="flex-1 px-4 py-3.5 rounded-xl text-white text-sm outline-none transition-all"
+            style="background:#0d1117;border:1px solid #2a3040;color:#fff;min-height:48px;"
+            onfocus="this.style.borderColor='#00ff88'"
+            onblur="this.style.borderColor='#2a3040'">
+          <button
+            type="submit"
+            id="email-btn"
+            class="px-6 py-3.5 rounded-xl font-bold text-sm transition-all accent-glow"
+            style="background:#00ff88;color:#0a0a0a;min-height:48px;white-space:nowrap;">
+            Send Me Free Insights
+          </button>
+        </div>
+      </form>
+
+      <div id="email-success" class="hidden mt-4 text-sm font-semibold text-accent">
+        ✓ You're on the list! We'll be in touch.
+      </div>
+      <div id="email-error" class="hidden mt-4 text-sm" style="color:#ff6b6b;"></div>
+      <p class="text-xs text-g-muted mt-4">No spam. Unsubscribe anytime.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ FAQ ═════════════════════════════════════════════════════════════════ -->
+<section id="faq" style="background:#0d1117;border-top:1px solid #1e2330;">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+    <div class="text-center mb-10 sm:mb-14 fade-up">
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4">
+        Frequently Asked <span class="gradient-text">Questions</span>
+      </h2>
+    </div>
+
+    <div class="space-y-3" id="faq-list">
+
+      <div class="faq-item rounded-xl overflow-hidden fade-up" style="border:1px solid #1e2330;background:#111318;">
+        <button class="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left gap-4" onclick="toggleFaq(this)" style="min-height:56px;">
+          <span class="font-semibold text-white text-sm sm:text-base">Do I need to know how to code or trade?</span>
+          <svg class="faq-chevron w-5 h-5 text-g-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-4 sm:px-6 pb-5 text-g-text text-sm leading-relaxed">Not at all. If you can use Telegram, you can use GlitchExecutor. The bot handles everything — no terminal, no code, no complex setup. Type a coin symbol, get a signal. That's it.</p>
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl overflow-hidden fade-up" style="border:1px solid #1e2330;background:#111318;">
+        <button class="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left gap-4" onclick="toggleFaq(this)" style="min-height:56px;">
+          <span class="font-semibold text-white text-sm sm:text-base">Is my money and my API keys safe?</span>
+          <svg class="faq-chevron w-5 h-5 text-g-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-4 sm:px-6 pb-5 text-g-text text-sm leading-relaxed">Yes. Your funds always stay in your own exchange account — we use API keys with trade-only permissions (no withdrawals). Keys are encrypted with AES-256 and never stored in plain text. We cannot move your money — only place trades on your behalf.</p>
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl overflow-hidden fade-up" style="border:1px solid #1e2330;background:#111318;">
+        <button class="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left gap-4" onclick="toggleFaq(this)" style="min-height:56px;">
+          <span class="font-semibold text-white text-sm sm:text-base">Which exchanges are supported?</span>
+          <svg class="faq-chevron w-5 h-5 text-g-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-4 sm:px-6 pb-5 text-g-text text-sm leading-relaxed">Any exchange supported by CCXT — that's 100+ including Binance, OKX, Bybit, KuCoin, Coinbase Advanced, Bitget, MEXC, Gate.io, Kraken, Bitfinex, and many more. If your exchange has a public API and is in the CCXT library, GlitchExecutor can connect to it.</p>
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl overflow-hidden fade-up" style="border:1px solid #1e2330;background:#111318;">
+        <button class="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left gap-4" onclick="toggleFaq(this)" style="min-height:56px;">
+          <span class="font-semibold text-white text-sm sm:text-base">What happens when the AI makes a wrong call?</span>
+          <svg class="faq-chevron w-5 h-5 text-g-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-4 sm:px-6 pb-5 text-g-text text-sm leading-relaxed">Every trade includes automatic stop-loss and take-profit levels. The ensemble only fires when confidence exceeds a minimum threshold — low-conviction signals are suppressed. No AI is 100% accurate, and neither is any human trader. Managing risk is built into every signal.</p>
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl overflow-hidden fade-up" style="border:1px solid #1e2330;background:#111318;">
+        <button class="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left gap-4" onclick="toggleFaq(this)" style="min-height:56px;">
+          <span class="font-semibold text-white text-sm sm:text-base">Can I still trade manually?</span>
+          <svg class="faq-chevron w-5 h-5 text-g-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-4 sm:px-6 pb-5 text-g-text text-sm leading-relaxed">Absolutely. GlitchExecutor is a trading assistant, not a replacement. Use it for signals and let it execute, or just use the signals as a second opinion for your own trades. You're always in control — pause the bot anytime with a single Telegram command.</p>
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl overflow-hidden fade-up" style="border:1px solid #1e2330;background:#111318;">
+        <button class="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left gap-4" onclick="toggleFaq(this)" style="min-height:56px;">
+          <span class="font-semibold text-white text-sm sm:text-base">Do I need a credit card to start the free trial?</span>
+          <svg class="faq-chevron w-5 h-5 text-g-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-4 sm:px-6 pb-5 text-g-text text-sm leading-relaxed">No credit card needed to start. Just fill in your name, email, and phone — you'll be taken straight into the Telegram bot for your 7-day trial. At the end of the trial, if you want to continue, you can choose a plan and pay securely via Stripe. No card, no commitment, no surprises upfront.</p>
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl overflow-hidden fade-up" style="border:1px solid #1e2330;background:#111318;">
+        <button class="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left gap-4" onclick="toggleFaq(this)" style="min-height:56px;">
+          <span class="font-semibold text-white text-sm sm:text-base">What happens when my free trial ends?</span>
+          <svg class="faq-chevron w-5 h-5 text-g-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-4 sm:px-6 pb-5 text-g-text text-sm leading-relaxed">After 7 days your free access ends and the bot will send you a payment link to continue. You choose your plan and pay only if you want to keep going — no automatic charges, no surprises. If you decide it's not for you, just don't pay. You can also email support@glitchexecutor.com anytime.</p>
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl overflow-hidden fade-up" style="border:1px solid #1e2330;background:#111318;">
+        <button class="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left gap-4" onclick="toggleFaq(this)" style="min-height:56px;">
+          <span class="font-semibold text-white text-sm sm:text-base">What's the difference between testnet and live execution?</span>
+          <svg class="faq-chevron w-5 h-5 text-g-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-4 sm:px-6 pb-5 text-g-text text-sm leading-relaxed">Testnet (Pro plan) executes trades using exchange paper-trading environments — the logic is identical but no real money is used. It's the ideal way to validate the strategy before going live. Elite plan enables live execution with real funds, subject to your position sizing settings.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ FOOTER ══════════════════════════════════════════════════════════════ -->
+<footer style="background:#0a0a0a;border-top:1px solid #1e2330;">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 mb-8 sm:mb-10">
+      <div>
+        <a href="#" class="flex items-center gap-2.5 mb-4">
+          <img src="logo.png" alt="GlitchExecutor" class="h-8 w-auto">
+          <span class="font-bold text-white">Glitch <span class="text-accent">Executor</span></span>
+        </a>
+        <p class="text-sm text-g-dim leading-relaxed max-w-xs">9-model AI ensemble for crypto trading. Signals via Telegram. Execute on 100+ exchanges.</p>
+      </div>
+      <div>
+        <div class="font-semibold text-white text-sm mb-4">Product</div>
+        <ul class="space-y-1">
+          <li><a href="#how-it-works" class="flex items-center py-2 text-sm text-g-dim hover:text-white transition-colors" style="min-height:44px;">How It Works</a></li>
+          <li><a href="#models"        class="flex items-center py-2 text-sm text-g-dim hover:text-white transition-colors" style="min-height:44px;">9 AI Models</a></li>
+          <li><a href="#pricing"       class="flex items-center py-2 text-sm text-g-dim hover:text-white transition-colors" style="min-height:44px;">Pricing</a></li>
+          <li><a href="#faq"           class="flex items-center py-2 text-sm text-g-dim hover:text-white transition-colors" style="min-height:44px;">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="font-semibold text-white text-sm mb-4">Get Started</div>
+        <ul class="space-y-1">
+          <li>
+            <a href="https://t.me/GlitchExecutor_bot" target="_blank" rel="noopener"
+               class="flex items-center gap-2 py-2 text-sm text-g-dim hover:text-white transition-colors"
+               style="min-height:44px;">
+              <svg class="w-4 h-4 text-accent flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              Open Telegram Bot
+            </a>
+          </li>
+          <li>
+            <a href="mailto:support@glitchexecutor.com"
+               class="flex items-center gap-2 py-2 text-sm text-g-dim hover:text-white transition-colors"
+               style="min-height:44px;">
+              <svg class="w-4 h-4 text-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+              support@glitchexecutor.com
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="border-t pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-3" style="border-color:#1e2330;">
+      <p class="text-xs text-g-muted">© 2026 GlitchExecutor. All rights reserved.</p>
+      <p class="text-xs text-g-muted text-center sm:text-right">
+        Trading involves risk. AI signals are not financial advice.
+      </p>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ═══ TRIAL MODAL ══════════════════════════════════════════════════════════ -->
+<div id="trial-modal"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);"
+     onclick="if(event.target===this)closeTrialModal()">
+
+  <div class="relative w-full max-w-md rounded-2xl p-6 sm:p-8"
+       style="background:#111318;border:1px solid #2a3040;box-shadow:0 0 60px rgba(0,255,136,0.08);">
+
+    <!-- Close -->
+    <button onclick="closeTrialModal()"
+            class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+            style="color:#555566;border:1px solid #1e2330;background:transparent;cursor:pointer;">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <!-- Header -->
+    <div class="mb-6 pr-8">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-2 h-2 rounded-full" style="background:#00ff88;animation:pulse 2s infinite;"></div>
+        <span id="trial-plan-badge" class="text-xs font-bold text-accent tracking-wider uppercase">7-Day Free Trial</span>
+      </div>
+      <h3 class="text-xl sm:text-2xl font-extrabold text-white mb-1">Start Your Free Trial</h3>
+      <p class="text-sm text-g-dim">Join via Telegram — no credit card needed to get started.</p>
+    </div>
+
+    <!-- Form wrap -->
+    <div id="trial-form-wrap">
+      <form id="trial-form" onsubmit="submitTrialForm(event)" class="space-y-4">
+
+        <input type="hidden" id="trial-plan" value="general">
+
+        <!-- Name -->
+        <div>
+          <label class="block text-xs font-semibold text-g-dim mb-1.5 uppercase tracking-wider">Full Name</label>
+          <input type="text" id="trial-name" placeholder="Your name" required autocomplete="name"
+            class="w-full px-4 py-3 rounded-xl text-white text-sm outline-none transition-all"
+            style="background:#0d1117;border:1px solid #2a3040;min-height:48px;"
+            onfocus="this.style.borderColor='#00ff88'" onblur="this.style.borderColor='#2a3040'">
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label class="block text-xs font-semibold text-g-dim mb-1.5 uppercase tracking-wider">Email Address</label>
+          <input type="email" id="trial-email" placeholder="you@example.com" required autocomplete="email"
+            class="w-full px-4 py-3 rounded-xl text-white text-sm outline-none transition-all"
+            style="background:#0d1117;border:1px solid #2a3040;min-height:48px;"
+            onfocus="this.style.borderColor='#00ff88'" onblur="this.style.borderColor='#2a3040'">
+        </div>
+
+        <!-- Phone -->
+        <div>
+          <label class="block text-xs font-semibold text-g-dim mb-1.5 uppercase tracking-wider">WhatsApp / Phone</label>
+          <input type="tel" id="trial-phone" placeholder="+1 234 567 8900" required autocomplete="tel"
+            class="w-full px-4 py-3 rounded-xl text-white text-sm outline-none transition-all"
+            style="background:#0d1117;border:1px solid #2a3040;min-height:48px;"
+            onfocus="this.style.borderColor='#00ff88'" onblur="this.style.borderColor='#2a3040'">
+        </div>
+
+        <!-- Error -->
+        <div id="trial-error" class="hidden text-sm py-2 px-3 rounded-lg" style="color:#ff6b6b;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);"></div>
+
+        <!-- Submit -->
+        <button type="submit" id="trial-btn"
+          class="w-full py-3.5 rounded-xl font-bold text-sm transition-all accent-glow"
+          style="background:#00ff88;color:#0a0a0a;min-height:52px;border:none;cursor:pointer;">
+          Continue to Telegram →
+        </button>
+
+        <p class="text-center text-xs text-g-muted">We'll never spam you. Unsubscribe anytime.</p>
+      </form>
+    </div>
+
+    <!-- Success state -->
+    <div id="trial-success" class="hidden text-center py-4">
+      <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+           style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);">
+        <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h4 class="text-lg font-bold text-white mb-2">You're in! 🎉</h4>
+      <p class="text-sm text-g-dim mb-5">Opening your Telegram bot now…</p>
+      <a id="trial-bot-link" href="#" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm accent-glow"
+         style="background:#00ff88;color:#0a0a0a;text-decoration:none;">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+        </svg>
+        Open Telegram Bot
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ SCRIPTS ═════════════════════════════════════════════════════════════ -->
+<script>
+// ─── Trial Modal ─────────────────────────────────────────────────────────────
+const PLAN_LABELS = {
+  starter: '⭐ Starter — 7-Day Free Trial',
+  pro:     '🤖 Pro — 7-Day Free Trial',
+  elite:   '🏢 Elite — 7-Day Free Trial',
+  general: '7-Day Free Trial',
+};
+
+function openTrialModal(plan) {
+  document.getElementById('trial-plan').value = plan;
+  document.getElementById('trial-plan-badge').textContent = PLAN_LABELS[plan] || '7-Day Free Trial';
+  document.getElementById('trial-modal').classList.remove('hidden');
+  document.getElementById('trial-form-wrap').classList.remove('hidden');
+  document.getElementById('trial-success').classList.add('hidden');
+  document.getElementById('trial-error').classList.add('hidden');
+  document.getElementById('trial-btn').textContent = 'Continue to Telegram →';
+  document.getElementById('trial-btn').disabled = false;
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('trial-name').focus(), 100);
+}
+
+function closeTrialModal() {
+  document.getElementById('trial-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+  document.getElementById('trial-form').reset();
+}
+
+function submitTrialForm(e) {
+  e.preventDefault();
+  const name  = document.getElementById('trial-name').value.trim();
+  const email = document.getElementById('trial-email').value.trim();
+  const phone = document.getElementById('trial-phone').value.trim();
+  const plan  = document.getElementById('trial-plan').value;
+  const btn   = document.getElementById('trial-btn');
+  const errEl = document.getElementById('trial-error');
+
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+  errEl.classList.add('hidden');
+
+  fetch('/api/trial-signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, phone, plan }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.status === 'ok') {
+      // Fire pixel lead events
+      if (typeof fbq === 'function')  fbq('track', 'Lead', { content_name: 'Trial Signup - ' + plan, value: 0, currency: 'USD' });
+      if (typeof ttq !== 'undefined') ttq.track('SubmitForm');
+      if (typeof gtag === 'function') gtag('event', 'generate_lead', { event_category: 'trial_signup', event_label: plan });
+
+      const botLink = data.bot_link || 'https://t.me/GlitchExecutor_bot';
+      document.getElementById('trial-bot-link').href = botLink;
+      document.getElementById('trial-form-wrap').classList.add('hidden');
+      document.getElementById('trial-success').classList.remove('hidden');
+
+      // Auto-open Telegram after short delay
+      setTimeout(() => window.open(botLink, '_blank'), 1200);
+    } else {
+      errEl.textContent = data.error || 'Something went wrong. Please try again.';
+      errEl.classList.remove('hidden');
+      btn.textContent = 'Continue to Telegram →';
+      btn.disabled = false;
+    }
+  })
+  .catch(() => {
+    errEl.textContent = 'Network error. Please check your connection and try again.';
+    errEl.classList.remove('hidden');
+    btn.textContent = 'Continue to Telegram →';
+    btn.disabled = false;
+  });
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeTrialModal();
+});
+
+// ─── Mobile menu ─────────────────────────────────────────────────────────────
+function toggleMenu() {
+  const menu  = document.getElementById('mobile-menu');
+  const open  = document.getElementById('menu-icon-open');
+  const close = document.getElementById('menu-icon-close');
+  const isHidden = menu.classList.contains('hidden');
+  menu.classList.toggle('hidden', !isHidden);
+  open.classList.toggle('hidden', isHidden);
+  close.classList.toggle('hidden', !isHidden);
+}
+function closeMenu() {
+  document.getElementById('mobile-menu').classList.add('hidden');
+  document.getElementById('menu-icon-open').classList.remove('hidden');
+  document.getElementById('menu-icon-close').classList.add('hidden');
+}
+// Close on outside tap
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('mobile-menu');
+  const btn  = document.getElementById('menu-btn');
+  if (!menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
+    closeMenu();
+  }
+});
+// Close on resize to desktop
+window.addEventListener('resize', function() {
+  if (window.innerWidth >= 768) closeMenu();
+});
+
+// ─── Pricing toggle ──────────────────────────────────────────────────────────
+const PRICES = {
+  monthly: {
+    starter: { id: "price_1T7u2iK6ZugeFXa5xQWoP16M", display: "$49",  note: "billed monthly" },
+    pro:     { id: "price_1T7u2GK6ZugeFXa5jXkKi71y", display: "$149", note: "billed monthly" },
+    elite:   { id: "price_1T7tzWK6ZugeFXa5Pikul5AN", display: "$349", note: "billed monthly" },
+  },
+  yearly: {
+    starter: { id: "price_1T7u3ZK6ZugeFXa5duRUQgr4", display: "$39",  note: "billed $470/yr · save $118" },
+    pro:     { id: "price_1T7u4CK6ZugeFXa5rbBAi0bf", display: "$119", note: "billed $1,430/yr · save $360" },
+    elite:   { id: "price_1T7u0OK6ZugeFXa5QUa0Szon", display: "$279", note: "billed $3,350/yr · save $840" },
+  }
+};
+let currentBilling = "monthly";
+
+function setBilling(mode) {
+  currentBilling = mode;
+  ["starter","pro","elite"].forEach(tier => {
+    const p = PRICES[mode][tier];
+    document.getElementById("price-" + tier).textContent = p.display;
+    document.getElementById("billing-note-" + tier).textContent = p.note;
+  });
+  document.getElementById("btn-monthly").classList.toggle("active", mode === "monthly");
+  document.getElementById("btn-yearly").classList.toggle("active",  mode === "yearly");
+}
+
+// ─── Checkout ────────────────────────────────────────────────────────────────
+function startCheckout(tier) {
+  const plan      = PRICES[currentBilling][tier];
+  const value     = parseFloat(plan.display.replace('$', ''));
+  const eventId   = 'ic_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+  const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
+
+  // ── Meta Pixel ──────────────────────────────────────────────────────────
+  if (typeof fbq === 'function') {
+    fbq('track', 'InitiateCheckout', {
+      content_ids:  [tier],
+      content_type: 'product',
+      content_name: 'GlitchExecutor ' + tierLabel,
+      value:        value,
+      currency:     'USD',
+      num_items:    1,
+    }, { eventID: eventId });
+  }
+
+  // ── TikTok Pixel ────────────────────────────────────────────────────────
+  if (typeof ttq !== 'undefined') {
+    ttq.track('InitiateCheckout', {
+      content_id:   [tier],
+      content_type: 'product',
+      content_name: 'GlitchExecutor ' + tierLabel,
+      value:        value,
+      currency:     'USD',
+    });
+  }
+
+  // ── Google Analytics 4 ──────────────────────────────────────────────────
+  if (typeof gtag === 'function') {
+    gtag('event', 'begin_checkout', {
+      currency:  'USD',
+      value:     value,
+      items: [{
+        item_id:   tier,
+        item_name: 'GlitchExecutor ' + tierLabel,
+        price:     value,
+        quantity:  1,
+      }],
+    });
+  }
+
+  // ── Fetch checkout session ───────────────────────────────────────────────
+  const btn      = event && event.currentTarget;
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+
+  fetch('/api/create-checkout-session', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ tier, billing: currentBilling, price_id: plan.id }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.url) { window.location.href = data.url; }
+    else {
+      alert('Could not start checkout. Please try again.');
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
+    }
+  })
+  .catch(() => {
+    alert('Network error. Please try again.');
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
+  });
+}
+
+// ─── Email capture ───────────────────────────────────────────────────────────
+function submitEmail(e) {
+  e.preventDefault();
+  const email   = document.getElementById("email-input").value.trim();
+  const btn     = document.getElementById("email-btn");
+  const success = document.getElementById("email-success");
+  const error   = document.getElementById("email-error");
+
+  btn.textContent = "Sending…";
+  btn.disabled = true;
+  success.classList.add("hidden");
+  error.classList.add("hidden");
+
+  fetch("/api/email-signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, source: "landing" })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.status === "ok") {
+      document.getElementById("email-form").classList.add("hidden");
+      success.classList.remove("hidden");
+
+      // Track lead capture on all platforms
+      if (typeof fbq === 'function')        fbq('track', 'Lead');
+      if (typeof ttq !== 'undefined')       ttq.track('SubmitForm');
+      if (typeof gtag === 'function')       gtag('event', 'generate_lead', { event_category: 'email_capture' });
+    } else {
+      error.textContent = data.error || "Something went wrong. Try again.";
+      error.classList.remove("hidden");
+      btn.textContent = "Notify Me";
+      btn.disabled = false;
+    }
+  })
+  .catch(() => {
+    error.textContent = "Network error. Please try again.";
+    error.classList.remove("hidden");
+    btn.textContent = "Notify Me";
+    btn.disabled = false;
+  });
+}
+
+// ─── FAQ accordion ───────────────────────────────────────────────────────────
+function toggleFaq(btn) {
+  const item   = btn.closest(".faq-item");
+  const isOpen = item.classList.contains("open");
+  document.querySelectorAll(".faq-item.open").forEach(i => i.classList.remove("open"));
+  if (!isOpen) item.classList.add("open");
+}
+
+// ─── Scroll fade-in ──────────────────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add("visible"); observer.unobserve(e.target); }
+  });
+}, { threshold: 0.05, rootMargin: "0px 0px -20px 0px" });
+document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
+
+// Make elements already in viewport visible immediately on load
+function revealVisible() {
+  document.querySelectorAll('.fade-up:not(.visible)').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight + 50 && rect.bottom > 0) {
+      el.classList.add('visible');
+    }
+  });
+}
+window.addEventListener('load', revealVisible);
+// Fallback scroll listener for browsers where IntersectionObserver is flaky
+let scrollTick = false;
+window.addEventListener('scroll', function() {
+  if (!scrollTick) {
+    scrollTick = true;
+    requestAnimationFrame(function() { revealVisible(); scrollTick = false; });
+  }
+}, { passive: true });
+</script>
+
+</body>
+</html>
