@@ -48,3 +48,6 @@ Thumbs.db
 *.pyc
 *.class
 *.o
+
+# Archived / relocated subtrees (one-time backups, not code)
+ml_collector.OLD-*/

@@ -49,6 +49,8 @@ try:
         ProtoOAClosePositionReq,
         ProtoOAAmendPositionSLTPReq,
         ProtoOAErrorRes,
+    )
+    from ctrader_open_api.messages.OpenApiModelMessages_pb2 import (
         ProtoOAOrderType,
         ProtoOATradeSide,
     )
@@ -438,7 +440,11 @@ class CTraderClient:
                 "entry_price": pos.price if pos.HasField("price") else 0,
                 "sl": pos.stopLoss if pos.HasField("stopLoss") else None,
                 "tp": pos.takeProfit if pos.HasField("takeProfit") else None,
-                "profit": pos.unrealizedPnl if pos.HasField("unrealizedPnl") else 0,
+                # ProtoOAPosition has no unrealizedPnl field in the current
+                # ctrader-open-api protobuf spec. Authoritative P&L must come
+                # via ProtoOADealListReq after close. Return 0 here so callers
+                # that only need ticket-existence checking still work.
+                "profit": 0,
             })
         return positions
 
