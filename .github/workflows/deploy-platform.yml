@@ -27,3 +27,4 @@ jobs:
             cd /opt/glitchexecutor
             git pull origin main
             docker compose up -d --build --remove-orphans
+            sudo systemctl restart glitch-ml-collector.service
