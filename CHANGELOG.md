@@ -11,6 +11,27 @@ use a redacted variant of these entries.
 
 ## [Unreleased]
 
+### Changed — 2026-04-14 · ML data consolidated server-local
+
+- Retired `glitch-ml-gitsync.service` + `glitch-ml-gitsync.timer`.
+  `/opt/glitch-ml-data/` (the cloned `glitch-executor-ml-data` repo,
+  993 MB with .git) deleted from the server.
+- All ML data now lives in a single tree at `/opt/ml/`:
+  - `/opt/ml/historical/per-bot/` — MT5-era per-bot CSVs (183 MB)
+  - `/opt/ml/historical/research/` — MT5-era research artifacts (693 MB)
+  - `/opt/ml/historical/clean-apr11-12/` — 2-day partial from the old
+    collector before it was rebuilt (512 KB)
+  - `/opt/ml/live/<YYYY-MM-DD>/` — cTrader-era daily exports from
+    PostgreSQL (`signals-<date>.csv`, `trades-<date>.csv`)
+- New daily timer `glitch-ml-export.timer` → `glitch-ml-export.service`
+  runs at 00:10 UTC, executes `/opt/ml/export_daily.py` as `glitchml`.
+  No network, no git, no push — PostgreSQL is the authoritative source
+  and the CSVs are a rolling off-line snapshot for analysis/backup.
+- The private GitHub repos `glitch-executor-ml-data`,
+  `glitch-executor-ml-models`, `glitch-executor-market-history`,
+  and `ipl-ml-data` remain on GitHub as a frozen historical archive
+  (no new pushes). Feel free to archive them on GitHub when convenient.
+
 ### Changed — 2026-04-14 · GitHub migration to `glitch-exec-labs`
 
 - All 13 repos transferred from the old `glitch-executor` user account to
