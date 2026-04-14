@@ -46,6 +46,22 @@ use a redacted variant of these entries.
 - `EXECUTOR_MOCK_MODE=false` — ensemble → executor trades now go through
   real cTrader API calls (to the demo account).
 
+### Fixed — 2026-04-14 · `executor/ctrader_client.py` ProtoOATraderReq payload type
+
+- `PT_TRADER_REQ / PT_TRADER_RES` were declared `2104 / 2105` but the
+  correct values are `2121 / 2122`. With the wrong constants the request
+  went out under the wrong payloadType and the reply parsed into an
+  empty `ProtoOATraderRes`, so `get_balance()` silently returned zeros.
+- Silent while `EXECUTOR_MOCK_MODE=true` (mock path never calls
+  `get_balance`). Surfaced the moment we flipped LIVE: every closed
+  row in `ml_trades` had `account_balance = 0` and `account_equity = 0`.
+- Fix applied to both the main platform's `executor/ctrader_client.py`
+  (used by the Docker executor container) and the vendored copy inside
+  `ctrader/executor/` in the ouroboros repo (used by `ml_collector`).
+- Backfill is not trivial (would need historical snapshots of balance
+  at each closure timestamp). Accept zeros for pre-fix rows; going
+  forward all rows populate correctly.
+
 ### Fixed — 2026-04-14 · `executor/ctrader_client.py` import + protobuf bugs
 
 1. `ProtoOAOrderType` and `ProtoOATradeSide` were imported from
