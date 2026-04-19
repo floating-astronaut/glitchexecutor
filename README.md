@@ -21,7 +21,6 @@ This repository combines:
 - `executor/` for execution workers and position handling
 - `telegram_bot/` for the user-facing bot, alerts, and orchestration
 - `admin_api/` for internal platform APIs
-- `admin_frontend/` for dashboard UI
 - `payment/` for billing and payment-service flows
 - `website/` for marketing/site assets
 - `nginx/` and `docker-compose.yml` for deployment plumbing
@@ -40,4 +39,5 @@ Do not commit production secrets, live customer data, database dumps, payment cr
 
 - strategy repos define reusable trading logic and product identities
 - private data/model repos preserve the ML and research estate
+- `glitch-admin-dashboard` is the standalone admin dashboard UI (extracted from this repo)
 - `glitchexecutor` is the integrated platform surface that ties those pieces into a working product

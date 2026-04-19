@@ -269,35 +269,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  dashboard:
-    image: nginx:alpine
-    container_name: glitch-dashboard
-    restart: always
-    depends_on:
-      admin_api:
-        condition: service_healthy
-    volumes:
-      - ./admin_frontend/dist:/usr/share/nginx/html:ro
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    ports:
-      - "127.0.0.1:8080:80"
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          memory: 64M
-          cpus: '0.25'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
   # ── Docker Socket Proxy — restricts Docker API access for admin_api ──
   docker-proxy:
     image: tecnativa/docker-socket-proxy
