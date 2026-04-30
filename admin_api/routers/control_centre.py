@@ -13,12 +13,10 @@ router = APIRouter()
 TARGET_CONTAINERS = [
     "glitch-postgres",
     "glitch-redis",
-    "glitch-ensemble",
-    "glitch-telegram-bot",
-    "glitch-executor",
     "glitch-payment",
     "glitch-admin-api",
     "glitch-dashboard",
+    "glitch-docker-proxy",
 ]
 
 RESTARTABLE = set(TARGET_CONTAINERS)
@@ -85,7 +83,7 @@ def containers(current_user: dict = Depends(get_current_user)):
             "name": name,
             "status": c.status,
             "health": health,
-            "image": c.image.tags[0] if c.image.tags else "unknown",
+            "image": (c.attrs.get("Config", {}) or {}).get("Image", "unknown"),
             "started_at": started_at,
             "uptime_seconds": _uptime_seconds(started_at),
             "cpu_percent": cpu_pct,
