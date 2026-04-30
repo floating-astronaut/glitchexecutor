@@ -9,17 +9,16 @@ from db import get_pg, log_audit
 router = APIRouter()
 
 ENV_VARS_TO_CHECK = [
-    "STRIPE_SECRET_KEY",
-    "STRIPE_WEBHOOK_SECRET",
-    "AWS_ACCESS_KEY_ID",
-    "AWS_SECRET_ACCESS_KEY",
-    "TELEGRAM_BOT_TOKEN",
+    # Auth + crypto
     "ADMIN_JWT_SECRET",
-    "ENCRYPTION_KEY",
-    "SENTIMENT_LLM_KEY",
-    "ORCHESTRATOR_LLM_KEY",
-    "ADMIN_TOKEN",
-    "CMC_API_KEY",
+    # Databases
+    "DATABASE_URL",
+    "ML_DATABASE_URL",
+    # Webhook secrets (admin_api receives bot trade webhooks)
+    "TELEGRAM_WEBHOOK_SECRET",
+    "TRADE_WEBHOOK_SECRET",
+    # Docker socket proxy URL (control centre + infra)
+    "DOCKER_HOST",
 ]
 
 
