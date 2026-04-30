@@ -108,6 +108,8 @@ services:
       DATABASE_URL: postgresql://${PG_USER:-glitch}:${PG_PASSWORD:-changeme}@postgres:5432/glitchexecutor
       # Read-only access to host postgres glitch_ml DB (Ouroboros trading data) via mounted unix socket
       ML_DATABASE_URL: postgresql://glitchml_ro:${ML_RO_PASSWORD}@/glitch_ml?host=/var/run/postgresql
+      # Read-only access to host postgres glitch_sales_agent (Glitch Budz)
+      SA_DATABASE_URL: postgresql://glitch_sa_ro:${SA_RO_PASSWORD}@/glitch_sales_agent?host=/var/run/postgresql&options=-c%20search_path%3Dsales_agent%2Cpublic
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       DASHBOARD_URL: http://172.17.0.1:5000

@@ -5,7 +5,7 @@ from db import run_migrations, get_pg
 from auth import verify_token, seed_admin
 from ws import manager
 from routers import dashboard, clients, billing, infra, settings as settings_router
-from routers import webhook, ib as ib_router, trade as trade_router
+from routers import webhook, ib as ib_router, trade as trade_router, grow as grow_router
 from routers import control_centre as cc_router, admin_mgmt as admin_router
 
 
@@ -29,6 +29,8 @@ app.include_router(settings_router.router, prefix="/api/settings", tags=["settin
 app.include_router(webhook.router,         prefix="/api/trades",   tags=["webhook"])
 # Trade vertical — Ouroboros (cTrader) data from glitch_ml DB
 app.include_router(trade_router.router,    prefix="/api/trade",    tags=["trade"])
+# Grow vertical — Glitch Budz sales agent data from glitch_sales_agent DB
+app.include_router(grow_router.router,     prefix="/api/grow",     tags=["grow"])
 # Interactive Brokers Gateway — requires JWT
 app.include_router(ib_router.router,        prefix="/api/ib",        tags=["ib"])
 app.include_router(cc_router.router,     prefix="/api/cc",    tags=["control_centre"])

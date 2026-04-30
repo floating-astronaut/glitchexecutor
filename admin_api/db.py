@@ -5,6 +5,7 @@ import psycopg2.extras
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 ML_DATABASE_URL = os.environ.get("ML_DATABASE_URL", "")
+SA_DATABASE_URL = os.environ.get("SA_DATABASE_URL", "")
 SQLITE_PATH = os.environ.get("SQLITE_PATH", "/data/trades.db")
 
 
@@ -19,6 +20,14 @@ def get_ml_pg():
     if not ML_DATABASE_URL:
         raise RuntimeError("ML_DATABASE_URL not configured")
     return psycopg2.connect(ML_DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+
+
+def get_sa_pg():
+    """Return a read-only psycopg2 connection to the Sales Agent
+    (glitch_sales_agent / Glitch Budz) DB. Used by /api/grow/budz/*."""
+    if not SA_DATABASE_URL:
+        raise RuntimeError("SA_DATABASE_URL not configured")
+    return psycopg2.connect(SA_DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 
 
 def get_sqlite():
