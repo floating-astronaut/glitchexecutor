@@ -18,6 +18,8 @@ def list_customers(
     search: str = "",
     tier:   str = "",
     status: str = "",
+    date_from: str = "",
+    date_to:   str = "",
     current_user: dict = Depends(get_current_user),
 ):
     conn = get_pg()
@@ -36,6 +38,12 @@ def list_customers(
     if status:
         conditions.append("status=%s")
         params.append(status)
+    if date_from:
+        conditions.append("created_at >= %s::timestamptz")
+        params.append(date_from)
+    if date_to:
+        conditions.append("created_at < (%s::date + INTERVAL '1 day')")
+        params.append(date_to)
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     cur.execute(f"SELECT COUNT(*) AS cnt FROM customers {where}", params)
     total = cur.fetchone()["cnt"]

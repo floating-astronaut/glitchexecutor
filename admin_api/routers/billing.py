@@ -99,20 +99,36 @@ def plans(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/email-signups")
-def email_signups(page: int = 1, limit: int = 50, current_user: dict = Depends(get_current_user)):
+def email_signups(
+    page: int = 1,
+    limit: int = 50,
+    date_from: str = "",
+    date_to: str = "",
+    current_user: dict = Depends(get_current_user),
+):
     conn = get_pg()
     cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) AS cnt FROM email_signups")
+    where, params = ["1=1"], []
+    if date_from:
+        where.append("created_at >= %s::timestamptz")
+        params.append(date_from)
+    if date_to:
+        where.append("created_at < (%s::date + INTERVAL '1 day')")
+        params.append(date_to)
+    where_sql = " AND ".join(where)
+
+    cur.execute(f"SELECT COUNT(*) AS cnt FROM email_signups WHERE {where_sql}", params)
     total = cur.fetchone()["cnt"]
 
     offset = (page - 1) * limit
-    cur.execute("""
-        SELECT id, email, source, signed_up_at
+    cur.execute(f"""
+        SELECT id, email, source, created_at AS signed_up_at
         FROM email_signups
-        ORDER BY signed_up_at DESC
+        WHERE {where_sql}
+        ORDER BY created_at DESC
         LIMIT %s OFFSET %s
-    """, (limit, offset))
+    """, [*params, limit, offset])
     rows = [dict(r) for r in cur.fetchall()]
     cur.close()
     conn.close()
