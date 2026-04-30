@@ -4,12 +4,21 @@ import psycopg2
 import psycopg2.extras
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
+ML_DATABASE_URL = os.environ.get("ML_DATABASE_URL", "")
 SQLITE_PATH = os.environ.get("SQLITE_PATH", "/data/trades.db")
 
 
 def get_pg():
     """Return a new psycopg2 connection (caller must close)."""
     return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+
+
+def get_ml_pg():
+    """Return a read-only psycopg2 connection to the Ouroboros (glitch_ml) DB.
+    Used by /api/trade/* endpoints. Caller must close."""
+    if not ML_DATABASE_URL:
+        raise RuntimeError("ML_DATABASE_URL not configured")
+    return psycopg2.connect(ML_DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 
 
 def get_sqlite():

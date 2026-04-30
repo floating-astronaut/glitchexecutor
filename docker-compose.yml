@@ -106,6 +106,8 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${PG_USER:-glitch}:${PG_PASSWORD:-changeme}@postgres:5432/glitchexecutor
+      # Read-only access to host postgres glitch_ml DB (Ouroboros trading data) via mounted unix socket
+      ML_DATABASE_URL: postgresql://glitchml_ro:${ML_RO_PASSWORD}@/glitch_ml?host=/var/run/postgresql
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       DASHBOARD_URL: http://172.17.0.1:5000
@@ -115,6 +117,8 @@ services:
       DOCKER_HOST: tcp://docker-proxy:2375
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}
       TRADE_WEBHOOK_SECRET: ${TRADE_WEBHOOK_SECRET}
+    volumes:
+      - /var/run/postgresql:/var/run/postgresql:ro
     ports:
       - "127.0.0.1:5004:5003"
     healthcheck:
