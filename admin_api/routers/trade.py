@@ -52,6 +52,20 @@ def _bot_status(last_signal: datetime | None, bot: str) -> str:
     return "offline"
 
 
+def _apply_date_range(
+    where: list, params: list, column: str,
+    date_from: Optional[str], date_to: Optional[str],
+):
+    """Mutates where/params lists with inclusive date-range filters (YYYY-MM-DD)."""
+    if date_from:
+        where.append(f"{column} >= %s::timestamptz")
+        params.append(date_from)
+    if date_to:
+        # exclusive upper bound = date_to + 1 day so a single-day pick is inclusive
+        where.append(f"{column} < (%s::date + INTERVAL '1 day')")
+        params.append(date_to)
+
+
 # ── Bots ─────────────────────────────────────────────────────────────────────
 
 @router.get("/bots")
@@ -97,10 +111,12 @@ def list_signals(
     symbol: Optional[str] = None,
     vote: Optional[str] = Query(None, regex="^(BUY|SELL|HOLD)$"),
     executed: Optional[bool] = None,
+    date_from: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    date_to: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
     limit: int = Query(50, ge=1, le=500),
     page: int = Query(1, ge=1),
 ):
-    """Paginated recent signals, filterable by bot/symbol/vote/executed."""
+    """Paginated signals, filterable by bot/symbol/vote/executed/date_range."""
     where, params = ["1=1"], []
     if bot:
         where.append("bot_name = %s"); params.append(bot)
@@ -110,6 +126,7 @@ def list_signals(
         where.append("vote = %s"); params.append(vote)
     if executed is not None:
         where.append("executed = %s"); params.append(executed)
+    _apply_date_range(where, params, "created_at", date_from, date_to)
     where_sql = " AND ".join(where)
     offset = (page - 1) * limit
 
@@ -146,10 +163,12 @@ def list_trades(
     status: Optional[str] = Query(None, regex="^(open|closed)$"),
     bot: Optional[str] = None,
     symbol: Optional[str] = None,
+    date_from: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    date_to: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
     limit: int = Query(50, ge=1, le=500),
     page: int = Query(1, ge=1),
 ):
-    """Recent trades with pnl + outcome."""
+    """Recent trades with pnl + outcome, filterable by date_range (opened_at)."""
     where, params = ["1=1"], []
     if status == "open":
         where.append("closed_at IS NULL")
@@ -159,6 +178,7 @@ def list_trades(
         where.append("bot_name = %s"); params.append(bot)
     if symbol:
         where.append("symbol = %s"); params.append(symbol)
+    _apply_date_range(where, params, "opened_at", date_from, date_to)
     where_sql = " AND ".join(where)
     offset = (page - 1) * limit
 
@@ -295,7 +315,10 @@ def oracle_decisions(
     symbol: Optional[str] = None,
     decision: Optional[str] = Query(None, regex="^(BUY|SELL|HOLD|ABSTAIN)$"),
     mode: Optional[str] = None,
-    limit: int = Query(100, ge=1, le=500),
+    date_from: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    date_to: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    limit: int = Query(50, ge=1, le=500),
+    page: int = Query(1, ge=1),
 ):
     where, params = ["1=1"], []
     if symbol:
@@ -304,10 +327,14 @@ def oracle_decisions(
         where.append("decision = %s"); params.append(decision)
     if mode:
         where.append("mode = %s"); params.append(mode)
+    _apply_date_range(where, params, "created_at", date_from, date_to)
     where_sql = " AND ".join(where)
+    offset = (page - 1) * limit
 
     conn = get_ml_pg()
     cur = conn.cursor()
+    cur.execute(f"SELECT COUNT(*) AS c FROM ml_oracle_decisions WHERE {where_sql}", params)
+    total = cur.fetchone()["c"]
     cur.execute(
         f"""SELECT id, decision_id, created_at, symbol, decision,
                    decision_confidence, buy_score, sell_score, hold_score,
@@ -315,8 +342,8 @@ def oracle_decisions(
             FROM ml_oracle_decisions
             WHERE {where_sql}
             ORDER BY created_at DESC
-            LIMIT %s""",
-        [*params, limit],
+            LIMIT %s OFFSET %s""",
+        [*params, limit, offset],
     )
     rows = [dict(r) for r in cur.fetchall()]
     cur.close()
@@ -327,7 +354,7 @@ def oracle_decisions(
         for k in ("decision_id", "trade_id"):
             if r.get(k):
                 r[k] = str(r[k])
-    return rows
+    return {"total": total, "page": page, "limit": limit, "rows": rows}
 
 
 @router.get("/oracle/weights")
@@ -353,25 +380,32 @@ def oracle_blocks(
     user=Depends(get_current_user),
     bot: Optional[str] = None,
     symbol: Optional[str] = None,
-    limit: int = Query(100, ge=1, le=500),
+    date_from: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    date_to: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    limit: int = Query(50, ge=1, le=500),
+    page: int = Query(1, ge=1),
 ):
     where, params = ["1=1"], []
     if bot:
         where.append("bot_name = %s"); params.append(bot)
     if symbol:
         where.append("symbol = %s"); params.append(symbol)
+    _apply_date_range(where, params, "created_at", date_from, date_to)
     where_sql = " AND ".join(where)
+    offset = (page - 1) * limit
 
     conn = get_ml_pg()
     cur = conn.cursor()
+    cur.execute(f"SELECT COUNT(*) AS c FROM ml_oracle_blocks WHERE {where_sql}", params)
+    total = cur.fetchone()["c"]
     cur.execute(
         f"""SELECT id, created_at, bot_name, symbol, side, proposed_lots,
                    block_reason, block_detail, signal_id
             FROM ml_oracle_blocks
             WHERE {where_sql}
             ORDER BY created_at DESC
-            LIMIT %s""",
-        [*params, limit],
+            LIMIT %s OFFSET %s""",
+        [*params, limit, offset],
     )
     rows = [dict(r) for r in cur.fetchall()]
     cur.close()
@@ -381,7 +415,7 @@ def oracle_blocks(
             r["created_at"] = r["created_at"].isoformat()
         if r.get("signal_id"):
             r["signal_id"] = str(r["signal_id"])
-    return rows
+    return {"total": total, "page": page, "limit": limit, "rows": rows}
 
 
 @router.get("/oracle/risk")
@@ -407,17 +441,28 @@ def oracle_risk_limits(user=Depends(get_current_user)):
 @router.get("/news")
 def news(
     user=Depends(get_current_user),
-    limit: int = Query(50, ge=1, le=200),
+    date_from: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    date_to: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    limit: int = Query(50, ge=1, le=500),
+    page: int = Query(1, ge=1),
 ):
+    where, params = ["1=1"], []
+    _apply_date_range(where, params, "COALESCE(published_at, created_at)", date_from, date_to)
+    where_sql = " AND ".join(where)
+    offset = (page - 1) * limit
+
     conn = get_ml_pg()
     cur = conn.cursor()
+    cur.execute(f"SELECT COUNT(*) AS c FROM ml_news_events WHERE {where_sql}", params)
+    total = cur.fetchone()["c"]
     cur.execute(
-        """SELECT id, created_at, article_id, title, description, link,
+        f"""SELECT id, created_at, article_id, title, description, link,
                   source, published_at, category, country, event_type, matched_rule_id
            FROM ml_news_events
+           WHERE {where_sql}
            ORDER BY COALESCE(published_at, created_at) DESC
-           LIMIT %s""",
-        (limit,),
+           LIMIT %s OFFSET %s""",
+        [*params, limit, offset],
     )
     rows = [dict(r) for r in cur.fetchall()]
     cur.close()
@@ -426,7 +471,7 @@ def news(
         for k in ("created_at", "published_at"):
             if r.get(k):
                 r[k] = r[k].isoformat()
-    return rows
+    return {"total": total, "page": page, "limit": limit, "rows": rows}
 
 
 # ── Collector state (read-only) ──────────────────────────────────────────────
