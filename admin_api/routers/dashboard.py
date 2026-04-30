@@ -1,24 +1,46 @@
-import os
+"""
+Admin home dashboard — KPIs, alerts, recent activity.
+
+After the MT5 → Ouroboros (cTrader) migration, this router reads from:
+- glitchexecutor DB (customers, billing, query_log)  via get_pg()
+- glitch_ml DB     (ml_signals, ml_trades, ml_oracle_decisions) via get_ml_pg()
+"""
 from datetime import datetime, timezone, date
 from fastapi import APIRouter, Depends
-import httpx
 
 from auth import get_current_user
-from db import get_pg
+from db import get_pg, get_ml_pg
 
 router = APIRouter()
 
 TIER_PRICES = {"starter": 49, "pro": 149, "elite": 349}
-DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://172.17.0.1:5000")
+
+# Trade engine considered healthy if any signal arrived in the last N seconds
+TRADE_ENGINE_FRESH_SEC = 120
 
 
-def _dashboard_get(path: str, timeout: float = 5.0):
+def _trade_engine_status() -> dict:
+    """Health of the Ouroboros stack derived from ml_signals freshness."""
     try:
-        r = httpx.get(f"{DASHBOARD_URL}{path}", timeout=timeout)
-        r.raise_for_status()
-        return r.json()
+        conn = get_ml_pg()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT EXTRACT(EPOCH FROM NOW() - MAX(created_at)) AS age_sec FROM ml_signals"
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        age = row["age_sec"]
+        if age is None:
+            return {"status": "no_data", "age_sec": None}
+        age = int(age)
+        if age <= TRADE_ENGINE_FRESH_SEC:
+            return {"status": "healthy", "age_sec": age}
+        if age <= TRADE_ENGINE_FRESH_SEC * 5:
+            return {"status": "stale", "age_sec": age}
+        return {"status": "offline", "age_sec": age}
     except Exception as e:
-        return {"error": str(e)}
+        return {"status": "unreachable", "age_sec": None, "error": str(e)}
 
 
 @router.get("/kpis")
@@ -43,7 +65,7 @@ def kpis(current_user: dict = Depends(get_current_user)):
         cur.execute("SELECT COUNT(*) AS cnt FROM email_signups")
         email_signups = cur.fetchone()["cnt"]
     except Exception:
-        conn.rollback()  # clear the aborted transaction state
+        conn.rollback()
 
     today = date.today().isoformat()
     try:
@@ -55,37 +77,41 @@ def kpis(current_user: dict = Depends(get_current_user)):
     except Exception:
         query_cost_today = 0.0
 
-    # Auto-execute trades + strong-signal notify metrics
-    auto_execute_trades_today = 0
-    auto_execute_users = 0
-    strong_signal_notify_users = 0
-    try:
-        cur.execute(
-            "SELECT COUNT(*) AS cnt FROM trades WHERE DATE(created_at) = CURRENT_DATE"
-        )
-        auto_execute_trades_today = cur.fetchone()["cnt"]
-        cur.execute(
-            "SELECT COUNT(*) AS cnt FROM user_preferences WHERE auto_execute_enabled = TRUE"
-        )
-        auto_execute_users = cur.fetchone()["cnt"]
-        cur.execute("""
-            SELECT COUNT(*) AS cnt FROM user_preferences
-            WHERE COALESCE(strong_signal_notify, TRUE) = TRUE
-              AND array_length(COALESCE(favorite_symbols, ARRAY[]::text[]), 1) > 0
-        """)
-        strong_signal_notify_users = cur.fetchone()["cnt"]
-    except Exception:
-        pass
-
     cur.close()
     conn.close()
 
-    ensemble_status = "unknown"
+    # Ouroboros KPIs from glitch_ml
+    trade_kpis = {
+        "trades_open": 0,
+        "trades_today": 0,
+        "signals_today": 0,
+        "account_equity": 0.0,
+    }
     try:
-        r = httpx.get("http://glitch-ensemble:8100/health", timeout=3.0)
-        ensemble_status = "healthy" if r.status_code == 200 else "unhealthy"
+        ml = get_ml_pg()
+        cml = ml.cursor()
+        cml.execute("SELECT COUNT(*) AS c FROM ml_trades WHERE closed_at IS NULL")
+        trade_kpis["trades_open"] = cml.fetchone()["c"]
+        cml.execute(
+            "SELECT COUNT(*) AS c FROM ml_trades WHERE opened_at::date = CURRENT_DATE"
+        )
+        trade_kpis["trades_today"] = cml.fetchone()["c"]
+        cml.execute(
+            "SELECT COUNT(*) AS c FROM ml_signals WHERE created_at::date = CURRENT_DATE"
+        )
+        trade_kpis["signals_today"] = cml.fetchone()["c"]
+        cml.execute(
+            """SELECT account_equity FROM ml_trades
+               WHERE account_equity IS NOT NULL
+               ORDER BY opened_at DESC LIMIT 1"""
+        )
+        row = cml.fetchone()
+        if row:
+            trade_kpis["account_equity"] = float(row["account_equity"])
+        cml.close()
+        ml.close()
     except Exception:
-        ensemble_status = "unreachable"
+        pass
 
     return {
         "total_customers": total_customers,
@@ -94,48 +120,50 @@ def kpis(current_user: dict = Depends(get_current_user)):
         "mrr_usd": mrr,
         "arr_usd": mrr * 12,
         "email_signups": email_signups,
-        "ensemble_status": ensemble_status,
-        "auto_execute_trades_today": auto_execute_trades_today,
-        "auto_execute_users": auto_execute_users,
-        "strong_signal_notify_users": strong_signal_notify_users,
         "query_cost_today_usd": round(query_cost_today, 4),
+        "trade_engine": _trade_engine_status(),
+        **trade_kpis,
     }
 
 
 @router.get("/alerts")
 def alerts(current_user: dict = Depends(get_current_user)):
     result = []
-    conn = get_pg()
-    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
 
-    cur.execute("SELECT COUNT(*) AS cnt FROM customers WHERE status='suspended'")
-    suspended = cur.fetchone()["cnt"]
-    if suspended > 0:
-        result.append({
-            "type": "suspended_customers",
-            "severity": "warning",
-            "message": f"{suspended} customer(s) currently suspended",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
-
-    cur.close()
-    conn.close()
-
+    # Suspended customers
     try:
-        r = httpx.get("http://glitch-ensemble:8100/health", timeout=3.0)
-        if r.status_code != 200:
+        conn = get_pg()
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) AS cnt FROM customers WHERE status='suspended'")
+        suspended = cur.fetchone()["cnt"]
+        if suspended > 0:
             result.append({
-                "type": "ensemble_unhealthy",
-                "severity": "critical",
-                "message": "Ensemble engine is returning non-200 status",
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "type": "suspended_customers",
+                "severity": "warning",
+                "message": f"{suspended} customer(s) currently suspended",
+                "created_at": now,
             })
+        cur.close()
+        conn.close()
     except Exception:
+        pass
+
+    # Trade engine health
+    te = _trade_engine_status()
+    if te["status"] == "stale":
         result.append({
-            "type": "ensemble_unreachable",
+            "type": "trade_engine_stale",
+            "severity": "warning",
+            "message": f"Ouroboros has not produced a signal in {te['age_sec']}s",
+            "created_at": now,
+        })
+    elif te["status"] in ("offline", "unreachable"):
+        result.append({
+            "type": "trade_engine_offline",
             "severity": "critical",
-            "message": "Ensemble engine is unreachable",
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "message": "Ouroboros trade engine is offline",
+            "created_at": now,
         })
 
     return result
@@ -143,57 +171,66 @@ def alerts(current_user: dict = Depends(get_current_user)):
 
 @router.get("/activity")
 def activity(current_user: dict = Depends(get_current_user)):
-    items = []
-    conn = get_pg()
-    cur = conn.cursor()
+    """Recent platform activity — Ouroboros trades + customer queries."""
+    items: list[dict] = []
 
+    # Trades opened/closed (Ouroboros)
     try:
-        cur.execute("""
-            SELECT q.created_at, c.username, q.symbol, q.action, q.llm_cost_usd
-            FROM query_log q
-            LEFT JOIN customers c ON c.telegram_id = q.telegram_id
-            ORDER BY q.created_at DESC
+        ml = get_ml_pg()
+        cml = ml.cursor()
+        cml.execute("""
+            SELECT bot_name, symbol, side, opened_at, closed_at, exit_reason, pnl
+            FROM ml_trades
+            ORDER BY GREATEST(opened_at, COALESCE(closed_at, opened_at)) DESC
             LIMIT 25
         """)
-        for row in cur.fetchall():
-            items.append({
-                "type": "query",
-                "customer": row.get("username", "unknown"),
-                "symbol": row.get("symbol"),
-                "action": row.get("action", "query"),
-                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-            })
+        for r in cml.fetchall():
+            opened, closed = r["opened_at"], r["closed_at"]
+            # Emit one entry for the most recent event on this trade
+            if closed and (not opened or closed > opened):
+                items.append({
+                    "type": "trade_close",
+                    "customer": r["bot_name"],
+                    "symbol": r["symbol"],
+                    "action": f"close {r['side']} ({r['exit_reason'] or '—'}) pnl={r['pnl']:.2f}" if r["pnl"] is not None else f"close {r['side']}",
+                    "created_at": closed.isoformat(),
+                })
+            else:
+                items.append({
+                    "type": "trade_open",
+                    "customer": r["bot_name"],
+                    "symbol": r["symbol"],
+                    "action": f"open {r['side']}",
+                    "created_at": opened.isoformat() if opened else None,
+                })
+        cml.close()
+        ml.close()
     except Exception:
         pass
 
-    cur.close()
-    conn.close()
-
-    # Recent bot events from bot_events table
+    # Customer queries
     try:
-        conn3 = get_pg()
-        cur3 = conn3.cursor()
-        cur3.execute("""
-            SELECT bot, event_type, symbol, direction, ticket, received_at
-            FROM bot_events
-            ORDER BY received_at DESC
-            LIMIT 25
+        conn = get_pg()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT q.created_at, c.username, q.symbol, q.action
+            FROM query_log q
+            LEFT JOIN customers c ON c.telegram_id = q.telegram_id
+            ORDER BY q.created_at DESC
+            LIMIT 15
         """)
-        for row in cur3.fetchall():
-            direction = row.get("direction") or ""
-            symbol = row.get("symbol") or "—"
-            action = f"{row['event_type']} {direction}".strip() if direction else row["event_type"]
+        for r in cur.fetchall():
             items.append({
-                "type": f"bot_{row['event_type']}",
-                "customer": row["bot"],
-                "symbol": symbol,
-                "action": action,
-                "created_at": row["received_at"].isoformat() if row["received_at"] else None,
+                "type": "query",
+                "customer": r.get("username") or "unknown",
+                "symbol": r.get("symbol"),
+                "action": r.get("action") or "query",
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
             })
-        cur3.close()
-        conn3.close()
+        cur.close()
+        conn.close()
     except Exception:
         pass
 
     items.sort(key=lambda x: x.get("created_at") or "", reverse=True)
-    return items[:50]
+    return items[:30]
