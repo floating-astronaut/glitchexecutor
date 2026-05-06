@@ -881,7 +881,7 @@ def db_upsert_tg_user(telegram_id: int, username: str = "",
 
 
 def _run_bot_migrations():
-    """Idempotent migrations for 7-day trial sequence tables."""
+    """Idempotent migrations for 7-day trial sequence tables + Glitch Grow buyers."""
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
@@ -906,6 +906,31 @@ def _run_bot_migrations():
                     CREATE INDEX IF NOT EXISTS idx_trial_signups_bot_token
                         ON trial_signups (bot_token)
                 """)
+                # ── Glitch Grow buyers — agent kit purchases ────────────────
+                # Idempotency key: payment_id (UNIQUE). Re-running webhooks
+                # bumps fulfilled_at via ON CONFLICT in the helper.
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS glitch_grow_buyers (
+                        id              BIGSERIAL PRIMARY KEY,
+                        payment_id      TEXT        NOT NULL UNIQUE,
+                        provider        TEXT        NOT NULL CHECK (provider IN ('stripe','razorpay')),
+                        sku             TEXT        NOT NULL,
+                        email           TEXT        NOT NULL,
+                        github_username TEXT,
+                        buyer_name      TEXT,
+                        amount_minor    INTEGER     NOT NULL,
+                        currency        TEXT        NOT NULL,
+                        promo_code      TEXT,
+                        notes           JSONB       NOT NULL DEFAULT '{}'::jsonb,
+                        created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+                        fulfilled_at    TIMESTAMPTZ,
+                        refunded_at     TIMESTAMPTZ
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_grow_buyers_email      ON glitch_grow_buyers(email)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_grow_buyers_sku        ON glitch_grow_buyers(sku)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_grow_buyers_provider   ON glitch_grow_buyers(provider)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_grow_buyers_created_at ON glitch_grow_buyers(created_at DESC)")
                 conn.commit()
         logger.info("Bot migrations complete")
     except Exception as e:
@@ -1428,6 +1453,186 @@ def customer_portal():
         return jsonify({"url": portal.url})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ─── Glitch Grow buyer ledger ────────────────────────────────────────────────
+# Three endpoints called by the Cloudflare Pages fulfillment Function on
+# grow.glitchexecutor.com. All three share the same shared-secret gate
+# via the `x-fulfill-secret` header, matched against GROW_FULFILL_SECRET
+# (the same env var used to authenticate the Pages -> Flask handoff for
+# Stripe webhook fulfillment dispatch).
+
+def _check_fulfill_secret() -> bool:
+    """Return True iff the inbound request carries the matching shared secret."""
+    expected = GROW_FULFILL_SECRET
+    if not expected:
+        return False
+    incoming = request.headers.get("x-fulfill-secret", "")
+    return hmac.compare_digest(incoming, expected)
+
+
+@app.route("/api/grow/record-buyer", methods=["POST"])
+def grow_record_buyer():
+    """Insert (or update on conflict) a row in glitch_grow_buyers.
+
+    Body:
+      provider         'stripe' | 'razorpay'        required
+      payment_id       provider's session/payment id  required (UNIQUE)
+      sku              'BSK-001'..'BSK-006' or 'BSK-ALL'  required
+      email            buyer email                   required
+      amount           amount paid in major units    required (e.g. 499 for $499)
+      currency         'USD' | 'INR' | ...           required
+      github_username  optional
+      buyer_name       optional
+      promo_code       optional ('GLITCH20' etc.)
+      notes            optional dict; merged into JSONB notes column
+      fulfilled        optional bool; if true, set fulfilled_at = now()
+    """
+    if not _check_fulfill_secret():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        return jsonify({"ok": False, "error": "bad-request"}), 400
+
+    required = ("provider", "payment_id", "sku", "email", "amount", "currency")
+    missing = [k for k in required if not data.get(k)]
+    if missing:
+        return jsonify({"ok": False, "error": "missing-fields", "missing": missing}), 400
+    if data["provider"] not in ("stripe", "razorpay"):
+        return jsonify({"ok": False, "error": "bad-provider"}), 400
+
+    amount_minor = int(round(float(data["amount"]) * 100))
+    fulfilled    = bool(data.get("fulfilled", True))
+    notes_json   = json.dumps(data.get("notes") or {})
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO glitch_grow_buyers
+                      (payment_id, provider, sku, email, github_username,
+                       buyer_name, amount_minor, currency, promo_code, notes,
+                       fulfilled_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb,
+                            CASE WHEN %s THEN now() ELSE NULL END)
+                    ON CONFLICT (payment_id) DO UPDATE
+                       SET fulfilled_at  = CASE WHEN EXCLUDED.fulfilled_at IS NOT NULL
+                                                THEN EXCLUDED.fulfilled_at
+                                                ELSE glitch_grow_buyers.fulfilled_at END,
+                           github_username = COALESCE(EXCLUDED.github_username,
+                                                      glitch_grow_buyers.github_username),
+                           buyer_name      = COALESCE(EXCLUDED.buyer_name,
+                                                      glitch_grow_buyers.buyer_name)
+                    RETURNING id, created_at, fulfilled_at
+                """, (
+                    data["payment_id"], data["provider"], data["sku"], data["email"],
+                    data.get("github_username"), data.get("buyer_name"),
+                    amount_minor, data["currency"], data.get("promo_code"),
+                    notes_json, fulfilled,
+                ))
+                row = cur.fetchone()
+                conn.commit()
+        return jsonify({
+            "ok": True,
+            "id": row[0],
+            "payment_id": data["payment_id"],
+            "created_at": row[1].isoformat() if row[1] else None,
+            "fulfilled_at": row[2].isoformat() if row[2] else None,
+        })
+    except Exception as e:
+        logger.error(f"grow_record_buyer failed: {e}")
+        return jsonify({"ok": False, "error": "db-error"}), 500
+
+
+@app.route("/api/grow/buyers", methods=["GET"])
+def grow_list_buyers():
+    """Read endpoint for ops dashboard / refund script.
+
+    Query params:
+      email      filter by email (exact)
+      sku        filter by sku
+      payment_id lookup by payment_id (returns at most 1 row)
+      limit      default 50, max 500
+    """
+    if not _check_fulfill_secret():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+
+    where = []
+    params = []
+    if request.args.get("email"):
+        where.append("email = %s")
+        params.append(request.args["email"])
+    if request.args.get("sku"):
+        where.append("sku = %s")
+        params.append(request.args["sku"])
+    if request.args.get("payment_id"):
+        where.append("payment_id = %s")
+        params.append(request.args["payment_id"])
+    limit = min(int(request.args.get("limit", 50)), 500)
+
+    sql = """
+        SELECT id, payment_id, provider, sku, email, github_username,
+               buyer_name, amount_minor, currency, promo_code, notes,
+               created_at, fulfilled_at, refunded_at
+        FROM glitch_grow_buyers
+        {where}
+        ORDER BY created_at DESC
+        LIMIT %s
+    """.format(where=("WHERE " + " AND ".join(where)) if where else "")
+    params.append(limit)
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                rows = cur.fetchall()
+        out = []
+        for r in rows:
+            out.append({
+                "id": r[0], "payment_id": r[1], "provider": r[2], "sku": r[3],
+                "email": r[4], "github_username": r[5], "buyer_name": r[6],
+                "amount_minor": r[7], "currency": r[8], "promo_code": r[9],
+                "notes": r[10], "created_at": r[11].isoformat() if r[11] else None,
+                "fulfilled_at": r[12].isoformat() if r[12] else None,
+                "refunded_at": r[13].isoformat() if r[13] else None,
+            })
+        return jsonify({"ok": True, "count": len(out), "buyers": out})
+    except Exception as e:
+        logger.error(f"grow_list_buyers failed: {e}")
+        return jsonify({"ok": False, "error": "db-error"}), 500
+
+
+@app.route("/api/grow/refund-buyer", methods=["POST"])
+def grow_refund_buyer():
+    """Mark a buyer record as refunded. Called by scripts/process-refund.mjs
+    after the provider-side refund completes."""
+    if not _check_fulfill_secret():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        return jsonify({"ok": False, "error": "bad-request"}), 400
+    payment_id = (data.get("payment_id") or "").strip()
+    if not payment_id:
+        return jsonify({"ok": False, "error": "missing-payment-id"}), 400
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE glitch_grow_buyers
+                       SET refunded_at = now()
+                     WHERE payment_id = %s
+                    RETURNING id
+                """, (payment_id,))
+                row = cur.fetchone()
+                conn.commit()
+        if not row:
+            return jsonify({"ok": False, "error": "not-found", "payment_id": payment_id}), 404
+        return jsonify({"ok": True, "id": row[0], "payment_id": payment_id})
+    except Exception as e:
+        logger.error(f"grow_refund_buyer failed: {e}")
+        return jsonify({"ok": False, "error": "db-error"}), 500
 
 
 # ─── Trial Bot Helper Functions ──────────────────────────────────────────────

@@ -66,5 +66,34 @@ CREATE INDEX IF NOT EXISTS idx_trades_customer ON trades(customer_id);
 CREATE INDEX IF NOT EXISTS idx_queries_customer ON query_log(customer_id);
 CREATE INDEX IF NOT EXISTS idx_queries_date ON query_log(created_at);
 
+-- ── Glitch Grow buyers ────────────────────────────────────────────────
+-- One row per Stripe checkout.session.completed or Razorpay HMAC-verified
+-- payment. Idempotency key: payment_id (UNIQUE). Re-firing the same
+-- webhook bumps fulfilled_at via ON CONFLICT DO UPDATE in the helper.
+-- Refunds are recorded by setting refunded_at (the process-refund.mjs
+-- script POSTs /api/grow/refund-buyer to do the UPDATE).
+-- amount_minor stores cents/paise so all currencies fit in INTEGER
+-- without rounding ambiguity. Display divides by 100.
+CREATE TABLE IF NOT EXISTS glitch_grow_buyers (
+    id              BIGSERIAL PRIMARY KEY,
+    payment_id      TEXT        NOT NULL UNIQUE,
+    provider        TEXT        NOT NULL CHECK (provider IN ('stripe','razorpay')),
+    sku             TEXT        NOT NULL,
+    email           TEXT        NOT NULL,
+    github_username TEXT,
+    buyer_name      TEXT,
+    amount_minor    INTEGER     NOT NULL,
+    currency        TEXT        NOT NULL,
+    promo_code      TEXT,
+    notes           JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    fulfilled_at    TIMESTAMPTZ,
+    refunded_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_grow_buyers_email      ON glitch_grow_buyers(email);
+CREATE INDEX IF NOT EXISTS idx_grow_buyers_sku        ON glitch_grow_buyers(sku);
+CREATE INDEX IF NOT EXISTS idx_grow_buyers_provider   ON glitch_grow_buyers(provider);
+CREATE INDEX IF NOT EXISTS idx_grow_buyers_created_at ON glitch_grow_buyers(created_at DESC);
+
 -- Success indicator
 SELECT 'GlitchExecutor database initialized successfully' as result;
