@@ -51,6 +51,50 @@ DATABASE_URL          = os.environ.get("DATABASE_URL", "")
 
 stripe.api_key = STRIPE_SECRET_KEY
 
+# ── Glitch Grow fulfillment dispatcher ────────────────────────────────
+# Stripe Payment Links for the BSK-* SKUs flow into stripe_webhook on
+# checkout.session.completed; that handler forks here to fire the
+# central fulfillment endpoint on grow.glitchexecutor.com which runs
+# GitHub collaborator invite + Resend welcome email + Sheet log +
+# Discord operator alert in parallel.
+GROW_FULFILL_URL    = os.getenv("GROW_FULFILL_URL", "https://grow.glitchexecutor.com/api/fulfill/grant-access")
+GROW_FULFILL_SECRET = os.getenv("GROW_FULFILL_SECRET", "")
+
+def _dispatch_grow_fulfillment(*, payment_id: str, sku: str, email: str,
+                                github_username: str, name: str,
+                                amount_minor: int, currency: str) -> None:
+    """Fire-and-forget POST to the Cloudflare Pages fulfillment endpoint.
+
+    The fulfill function is shared-secret protected via the x-fulfill-secret
+    header. Failure here does not block the webhook ack — Stripe retries
+    are acceptable and the fulfill function is idempotent on payment_id."""
+    if not GROW_FULFILL_SECRET:
+        logger.warning("GROW_FULFILL_SECRET not set — skipping fulfillment dispatch")
+        return
+    payload = {
+        "provider":         "stripe",
+        "payment_id":       payment_id,
+        "sku":              sku,
+        "email":            email,
+        "github_username":  github_username or None,
+        "name":             name or None,
+        "amount":           (amount_minor or 0) / 100,
+        "currency":         currency,
+    }
+    try:
+        r = requests.post(
+            GROW_FULFILL_URL,
+            json=payload,
+            headers={"x-fulfill-secret": GROW_FULFILL_SECRET},
+            timeout=10,
+        )
+        logger.info(
+            f"Glitch Grow fulfill dispatch: sku={sku} payment_id={payment_id[:14]}… "
+            f"status={r.status_code}"
+        )
+    except requests.RequestException as e:
+        logger.error(f"Glitch Grow fulfill dispatch network error: {e}")
+
 # Price ID → internal tier mapping
 PRICE_TIER_MAP = {
     "price_1T7u2iK6ZugeFXa5xQWoP16M": "starter",   # Starter Monthly
@@ -556,6 +600,50 @@ def stripe_webhook():
         customer_email         = ""
         if session.get("customer_details"):
             customer_email = session["customer_details"].get("email") or ""
+
+        # ── Glitch Grow agent fulfillment fork ─────────────────────────────
+        # The Glitch Grow Payment Links (BSK-001..006 + BSK-ALL) carry
+        # metadata.sku from setup-stripe-products.mjs. When we see one,
+        # dispatch to the central fulfillment endpoint on grow.glitch
+        # executor.com and skip the dashboard subscription flow below.
+        # Line items, custom fields, customer email are all surfaced
+        # in the session payload so we don't need to round-trip Stripe.
+        sku_meta = metadata.get("sku", "") or ""
+        # Some Payment Links inherit the SKU on the line-item Price's
+        # metadata rather than the session — fall back to expanding
+        # line_items if needed.
+        if not sku_meta.startswith("BSK-"):
+            try:
+                expanded = stripe.checkout.Session.retrieve(
+                    session["id"], expand=["line_items.data.price.product"]
+                )
+                for li in expanded.get("line_items", {}).get("data", []) or []:
+                    cand = (li.get("price", {}).get("metadata", {}) or {}).get("sku", "")
+                    if cand.startswith("BSK-"):
+                        sku_meta = cand
+                        break
+            except Exception:
+                pass
+
+        if sku_meta.startswith("BSK-"):
+            github_username = ""
+            for field in session.get("custom_fields", []) or []:
+                if field.get("key") == "github_username":
+                    github_username = (field.get("text", {}).get("value") or "").strip()
+                    break
+            try:
+                _dispatch_grow_fulfillment(
+                    payment_id=session["id"],
+                    sku=sku_meta,
+                    email=customer_email,
+                    github_username=github_username,
+                    name=(session.get("customer_details", {}) or {}).get("name", ""),
+                    amount_minor=session.get("amount_total", 0),
+                    currency=(session.get("currency") or "USD").upper(),
+                )
+            except Exception as e:
+                logger.error(f"Glitch Grow fulfillment dispatch failed: {e}")
+            return jsonify({"status": "ok", "stream": "glitch-grow", "sku": sku_meta})
 
         # ── Resolve who paid: bot-originated vs web-originated ─────────────
         source            = metadata.get("source", "web")
