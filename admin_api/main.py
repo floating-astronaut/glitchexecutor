@@ -7,6 +7,7 @@ from ws import manager
 from routers import dashboard, clients, billing, infra, settings as settings_router
 from routers import webhook, ib as ib_router, trade as trade_router, grow as grow_router
 from routers import control_centre as cc_router, admin_mgmt as admin_router
+from routers import customers as customers_router
 
 
 app = FastAPI(title="GlitchExecutor Admin API", version="1.0.0")
@@ -35,6 +36,8 @@ app.include_router(grow_router.router,     prefix="/api/grow",     tags=["grow"]
 app.include_router(ib_router.router,        prefix="/api/ib",        tags=["ib"])
 app.include_router(cc_router.router,     prefix="/api/cc",    tags=["control_centre"])
 app.include_router(admin_router.router,  prefix="/api/admin", tags=["admin_mgmt"])
+# Customer management — JWT-protected proxy to payment server (Grow buyers + leads now; Edge/Trade later)
+app.include_router(customers_router.router, prefix="/api/customers", tags=["customers"])
 
 # Auth router is included separately at /auth prefix
 from routers import auth as auth_router
