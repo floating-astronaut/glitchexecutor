@@ -241,3 +241,55 @@ def budz_funnel(user=Depends(get_current_user)):
     cur.close()
     conn.close()
     return rows
+
+
+# ── Agent summary (Grow command center) ──────────────────────────────────────
+
+@router.get("/agents/summary")
+def agents_summary(user=Depends(get_current_user)):
+    """
+    One row per Grow agent for the command-center grid. Each agent reports
+    its overall status, number of live deployments, pending-approval count,
+    and outputs in the last 7 days.
+
+    Agents without live deployments return zeros + status='coming_soon' so
+    the card still renders cleanly.
+    """
+    # Sales Agent — currently just Glitch Budz.
+    sales_pending = 0
+    sales_outputs_7d = 0
+    sales_deployments = 1
+    sales_status = "healthy"
+    try:
+        conn = get_sa_pg()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COUNT(*) AS c FROM email_drafts WHERE approval_state='pending'"
+        )
+        sales_pending = int(cur.fetchone()["c"] or 0)
+        cur.execute(
+            "SELECT COUNT(*) AS c FROM email_sends WHERE sent_at > NOW() - INTERVAL '7 days'"
+        )
+        sales_outputs_7d = int(cur.fetchone()["c"] or 0)
+        cur.close()
+        conn.close()
+    except Exception:
+        sales_status = "degraded"
+
+    agents = [
+        {
+            "id": "sales",
+            "name": "Sales Agent",
+            "status": sales_status,
+            "deployments": sales_deployments,
+            "pending_approvals": sales_pending,
+            "outputs_7d": sales_outputs_7d,
+        },
+        {"id": "ads",    "name": "Ads Agent",         "status": "coming_soon", "deployments": 0, "pending_approvals": 0, "outputs_7d": 0},
+        {"id": "social", "name": "Social Agent",      "status": "coming_soon", "deployments": 0, "pending_approvals": 0, "outputs_7d": 0},
+        {"id": "ugc",    "name": "UGC Agent",         "status": "coming_soon", "deployments": 0, "pending_approvals": 0, "outputs_7d": 0},
+        {"id": "seo",    "name": "SEO Agent",         "status": "coming_soon", "deployments": 0, "pending_approvals": 0, "outputs_7d": 0},
+        {"id": "voice",  "name": "Voice / COD Agent", "status": "coming_soon", "deployments": 0, "pending_approvals": 0, "outputs_7d": 0},
+    ]
+
+    return {"agents": agents}
