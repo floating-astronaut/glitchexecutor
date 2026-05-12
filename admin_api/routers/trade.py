@@ -520,3 +520,65 @@ def bars(
             r["bar_time"] = r["bar_time"].isoformat()
     rows.reverse()  # ascending order for chart consumption
     return rows
+
+
+@router.get("/series")
+def trade_series(
+    days: int = Query(7, ge=1, le=90),
+    metric: str = Query("pnl", pattern="^(pnl|equity|signals|trades)$"),
+    user=Depends(get_current_user),
+):
+    """
+    Daily-bucketed time series for sparklines on KPI cards.
+
+    metric:
+      pnl      — sum of closed-trade pnl per day
+      equity   — last account_equity snapshot per day
+      signals  — count of ml_signals per day
+      trades   — count of ml_trades opened per day
+    """
+    conn = get_ml_pg()
+    cur = conn.cursor()
+
+    if metric == "pnl":
+        cur.execute(
+            """SELECT date_trunc('day', closed_at) AS d,
+                      COALESCE(SUM(pnl), 0)::float AS v
+               FROM ml_trades
+               WHERE closed_at > NOW() - (%s || ' days')::interval
+               GROUP BY 1 ORDER BY 1""",
+            (days,),
+        )
+    elif metric == "equity":
+        cur.execute(
+            """SELECT date_trunc('day', opened_at) AS d,
+                      (array_agg(account_equity ORDER BY opened_at DESC))[1]::float AS v
+               FROM ml_trades
+               WHERE opened_at > NOW() - (%s || ' days')::interval
+                 AND account_equity IS NOT NULL
+               GROUP BY 1 ORDER BY 1""",
+            (days,),
+        )
+    elif metric == "signals":
+        cur.execute(
+            """SELECT date_trunc('day', created_at) AS d,
+                      COUNT(*)::float AS v
+               FROM ml_signals
+               WHERE created_at > NOW() - (%s || ' days')::interval
+               GROUP BY 1 ORDER BY 1""",
+            (days,),
+        )
+    else:  # trades
+        cur.execute(
+            """SELECT date_trunc('day', opened_at) AS d,
+                      COUNT(*)::float AS v
+               FROM ml_trades
+               WHERE opened_at > NOW() - (%s || ' days')::interval
+               GROUP BY 1 ORDER BY 1""",
+            (days,),
+        )
+
+    rows = [{"t": r["d"].isoformat(), "v": float(r["v"] or 0)} for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return {"metric": metric, "days": days, "points": rows}
