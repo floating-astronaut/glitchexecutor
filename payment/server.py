@@ -1533,15 +1533,18 @@ def grow_record_buyer():
                 ))
                 row = cur.fetchone()
                 conn.commit()
+        # get_db() uses RealDictCursor so `row` is a dict, not a tuple.
+        # The previous row[0]/row[1]/row[2] was throwing `KeyError: 0`,
+        # which str()'d to "0" and surfaced as "db-error" in the response.
         return jsonify({
             "ok": True,
-            "id": row[0],
+            "id": row["id"],
             "payment_id": data["payment_id"],
-            "created_at": row[1].isoformat() if row[1] else None,
-            "fulfilled_at": row[2].isoformat() if row[2] else None,
+            "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+            "fulfilled_at": row["fulfilled_at"].isoformat() if row.get("fulfilled_at") else None,
         })
     except Exception as e:
-        logger.error(f"grow_record_buyer failed: {e}")
+        logger.error(f"grow_record_buyer failed: {type(e).__name__}: {e}")
         return jsonify({"ok": False, "error": "db-error"}), 500
 
 
