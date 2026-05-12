@@ -582,3 +582,50 @@ def trade_series(
     cur.close()
     conn.close()
     return {"metric": metric, "days": days, "points": rows}
+
+
+@router.get("/account/live")
+def live_account(user=Depends(get_current_user)):
+    """
+    Live broker balance/equity, written by the ml_collector every 30s into
+    ml_collector_state['live_balance']. Falls back to nulls when the collector
+    has not yet emitted a snapshot.
+    """
+    conn = get_ml_pg()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT value, updated_at FROM ml_collector_state WHERE key = 'live_balance'"
+    )
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return {
+            "available": False,
+            "fetched_at": None,
+            "total_balance": None,
+            "total_equity": None,
+            "currency": None,
+            "accounts": {},
+            "stale_seconds": None,
+        }
+
+    val = row["value"]
+    if isinstance(val, str):
+        import json
+        val = json.loads(val)
+    updated_at = row["updated_at"]
+    stale = None
+    if updated_at is not None:
+        stale = (datetime.now(timezone.utc) - updated_at).total_seconds()
+
+    return {
+        "available": True,
+        "fetched_at": val.get("fetched_at"),
+        "total_balance": val.get("total_balance"),
+        "total_equity": val.get("total_equity"),
+        "currency": val.get("currency", "USD"),
+        "accounts": val.get("accounts", {}),
+        "stale_seconds": round(stale, 1) if stale is not None else None,
+    }
