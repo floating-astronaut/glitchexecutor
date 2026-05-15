@@ -13,7 +13,18 @@ Body text (if present) shown as indented sub-bullets.
 
 ## 2026-05-15
 
-- **06:48 UTC** — auto-sync: 2026-05-15 05:48 UTC (`c54adc1`) — 3 files
+- **07:48 UTC** — admin_api: cTrader Open API multi-tenant OAuth router + DB migration (`8a3f89b`) — 4 files
+    Lets every signed-in SSO user link one or more of their personal cTrader
+    trader accounts via the standard OAuth 2.0 authorization-code flow.
+    Sister of the existing /api/customers proxy: routers stay thin, secrets
+    live in env, tokens get encrypted at rest before they touch Postgres.
+    routers/ctrader_oauth.py
+      GET    /api/ctrader/oauth/start          mints CSRF state JWT bound
+                                               to the SSO email; returns
+                                               the cTrader authorize URL
+                                               the SPA should send the
+                                               browser to
+- **07:04 UTC** — auto-sync: 2026-05-15 05:48 UTC (`92c5bac`) — 3 files
         M	admin_api/auth.py
         M	admin_api/main.py
 - **05:33 UTC** — auto-sync: 2026-05-12 10:10 UTC (`6ed4860`) — 2 files

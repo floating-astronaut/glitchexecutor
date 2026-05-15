@@ -173,6 +173,36 @@ def run_migrations():
         CREATE INDEX IF NOT EXISTS idx_oracle_alerts_recv
         ON oracle_alerts(received_at DESC)
     """)
+    # ── User cTrader OAuth connections ─────────────────────────────────────────
+    # Per-user broker links established via the cTrader Open API OAuth 2.0
+    # flow. One row per (sso_email, ctid_trader_account_id) pairing — a single
+    # SSO user may connect multiple cTrader accounts (live + demo, multi-broker).
+    # access_token / refresh_token are encrypted at rest using a Fernet key
+    # derived from ADMIN_JWT_SECRET (see auth.py / ctrader_oauth.py).
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_ctrader_connections (
+            id                       SERIAL PRIMARY KEY,
+            sso_email                TEXT NOT NULL,
+            ctid_trader_account_id   BIGINT NOT NULL,
+            broker_name              TEXT,
+            account_label            TEXT,
+            is_live                  BOOLEAN NOT NULL,
+            currency                 TEXT,
+            access_token_enc         TEXT NOT NULL,
+            refresh_token_enc        TEXT NOT NULL,
+            access_token_expires_at  TIMESTAMPTZ NOT NULL,
+            scope                    TEXT,
+            connected_at             TIMESTAMPTZ DEFAULT NOW(),
+            last_refreshed_at        TIMESTAMPTZ,
+            revoked_at               TIMESTAMPTZ,
+            UNIQUE (sso_email, ctid_trader_account_id)
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_uctc_email_active
+        ON user_ctrader_connections(sso_email)
+        WHERE revoked_at IS NULL
+    """)
     conn.commit()
     cursor.close()
     conn.close()
