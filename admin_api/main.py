@@ -14,9 +14,12 @@ app = FastAPI(title="GlitchExecutor Admin API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://dashboard.glitchexecutor.com"],
+    allow_origins=[
+        "https://dashboard.glitchexecutor.com",
+        "https://trade-app.glitchexecutor.com",
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
