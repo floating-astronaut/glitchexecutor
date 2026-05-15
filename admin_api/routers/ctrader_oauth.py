@@ -296,10 +296,12 @@ async def oauth_callback(body: CallbackBody, user=Depends(get_current_user)):
     # 2) Enumerate the trader accounts this token sees
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
+            # Spotware's /connect/tradingaccounts ignores Bearer headers —
+            # the access token must be passed as ?oauth_token=… query param.
             ar = await client.get(
                 CTRADER_ACCOUNTS_URL,
-                headers={"Authorization": f"Bearer {tokens['access_token']}",
-                         "Accept": "application/json"},
+                params={"oauth_token": tokens["access_token"]},
+                headers={"Accept": "application/json"},
             )
         except httpx.HTTPError as exc:
             raise HTTPException(status_code=502, detail=f"accounts endpoint unreachable: {exc}")

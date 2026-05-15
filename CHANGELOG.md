@@ -11,9 +11,17 @@ Body text (if present) shown as indented sub-bullets.
 
 ---
 
+## 2026-05-16
+
+- **02:48 UTC** — ctrader oauth: pass access token as ?oauth_token= query param (`d6da1c1`) — 2 files
+    Spotware's /connect/tradingaccounts rejects 'Authorization: Bearer …'
+    with INVALID_REQUEST 'Required oauth_token parameter is not present'.
+    Switch to the documented query-param form.
+    Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
 ## 2026-05-15
 
-- **07:48 UTC** — admin_api: cTrader Open API multi-tenant OAuth router + DB migration (`8a3f89b`) — 4 files
+- **08:03 UTC** — admin_api: cTrader Open API multi-tenant OAuth router + DB migration (`0e3c9f6`) — 4 files
     Lets every signed-in SSO user link one or more of their personal cTrader
     trader accounts via the standard OAuth 2.0 authorization-code flow.
     Sister of the existing /api/customers proxy: routers stay thin, secrets
