@@ -31,7 +31,7 @@ Secrets (env)
   CTRADER_PUBLIC_REDIRECT_URI   — must match what's registered on the app
                                   AND what the SPA navigates to after the
                                   approve step (e.g.
-                                  https://trade-app.glitchexecutor.com/oauth/ctrader/callback).
+                                  https://trade.glitchexecutor.com/oauth/ctrader/callback).
   CTRADER_OAUTH_SCOPE           — default "accounts" (read-only). Set to
                                   "trading" to also place orders.
   ADMIN_JWT_SECRET              — already present; we derive a Fernet key
@@ -77,7 +77,7 @@ CLIENT_ID     = os.environ.get("CTRADER_PUBLIC_CLIENT_ID", "")
 CLIENT_SECRET = os.environ.get("CTRADER_PUBLIC_CLIENT_SECRET", "")
 REDIRECT_URI  = os.environ.get(
     "CTRADER_PUBLIC_REDIRECT_URI",
-    "https://trade-app.glitchexecutor.com/oauth/ctrader/callback",
+    "https://trade.glitchexecutor.com/oauth/ctrader/callback",
 )
 SCOPE         = os.environ.get("CTRADER_OAUTH_SCOPE", "accounts")
 

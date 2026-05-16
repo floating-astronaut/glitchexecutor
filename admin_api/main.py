@@ -18,6 +18,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://dashboard.glitchexecutor.com",
+        # trade-app.* was the original SPA hostname; renamed to trade.*
+        # in May 2026 when the SPA moved to CF Pages. Keep both for the
+        # short transition period (old bookmarks 301 via origin nginx,
+        # but a stale tab might still issue an XHR with the old Origin).
+        "https://trade.glitchexecutor.com",
         "https://trade-app.glitchexecutor.com",
     ],
     allow_credentials=True,
