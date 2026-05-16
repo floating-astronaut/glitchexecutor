@@ -13,7 +13,10 @@ Body text (if present) shown as indented sub-bullets.
 
 ## 2026-05-16
 
-- **02:48 UTC** — ctrader oauth: pass access token as ?oauth_token= query param (`d6da1c1`) — 2 files
+- **22:17 UTC** — auto-sync: 2026-05-16 22:17 UTC (`1d243b7`) — 2 files
+        M	admin_api/main.py
+        A	admin_api/routers/trade_admin.py
+- **03:04 UTC** — ctrader oauth: pass access token as ?oauth_token= query param (`45a0e36`) — 2 files
     Spotware's /connect/tradingaccounts rejects 'Authorization: Bearer …'
     with INVALID_REQUEST 'Required oauth_token parameter is not present'.
     Switch to the documented query-param form.

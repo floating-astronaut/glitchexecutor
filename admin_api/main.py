@@ -9,6 +9,7 @@ from routers import webhook, ib as ib_router, trade as trade_router, grow as gro
 from routers import control_centre as cc_router, admin_mgmt as admin_router
 from routers import customers as customers_router
 from routers import ctrader_oauth as ctrader_oauth_router
+from routers import trade_admin as trade_admin_router
 
 
 app = FastAPI(title="GlitchExecutor Admin API", version="1.0.0")
@@ -44,6 +45,9 @@ app.include_router(admin_router.router,  prefix="/api/admin", tags=["admin_mgmt"
 app.include_router(customers_router.router, prefix="/api/customers", tags=["customers"])
 # cTrader Open API OAuth — multi-tenant per-user broker connections
 app.include_router(ctrader_oauth_router.router, prefix="/api/ctrader", tags=["ctrader_oauth"])
+# Trade-admin proxy — forwards to glitch-trade-api /v1/admin/* with
+# X-Admin-Secret injected server-side so the SPA never sees the secret.
+app.include_router(trade_admin_router.router, prefix="/api/trade-admin", tags=["trade_admin"])
 
 # Auth router is included separately at /auth prefix
 from routers import auth as auth_router
