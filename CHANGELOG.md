@@ -11,9 +11,23 @@ Body text (if present) shown as indented sub-bullets.
 
 ---
 
+## 2026-05-17
+
+- **05:32 UTC** — auto-sync: 2026-05-17 05:32 UTC (`b78f837`) — 1 file
+        M	admin_api/routers/ctrader_oauth.py
+
 ## 2026-05-16
 
-- **22:17 UTC** — auto-sync: 2026-05-16 22:17 UTC (`1d243b7`) — 2 files
+- **23:07 UTC** — admin_api: align with trade-app → trade.glitchexecutor.com rename (`5e095a1`) — 2 files
+    The trade SPA hostname moved from trade-app.* to trade.* when it
+    landed on CF Pages. Two real fixes:
+      - CORSMiddleware allow_origins now includes the new hostname
+        (kept the old one too as a short-term transition courtesy).
+      - cTrader OAuth REDIRECT_URI default now points at trade.* so the
+        hardcoded fallback matches what's registered in the Spotware dev
+        portal. Production also pins CTRADER_PUBLIC_REDIRECT_URI in env.
+    Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+- **22:17 UTC** — auto-sync: 2026-05-16 22:17 UTC (`4c841ea`) — 3 files
         M	admin_api/main.py
         A	admin_api/routers/trade_admin.py
 - **03:04 UTC** — ctrader oauth: pass access token as ?oauth_token= query param (`45a0e36`) — 2 files

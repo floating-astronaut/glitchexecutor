@@ -130,6 +130,27 @@ def _verify_state(state: str, email: str) -> None:
 
 # ── DB helpers ──────────────────────────────────────────────────────────────
 
+def _account_field(account: dict, *names: str):
+    for name in names:
+        value = account.get(name)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _account_id(account: dict) -> int:
+    value = _account_field(
+        account,
+        "ctidTraderAccountId",
+        "ctidTradingAccountId",
+        "accountId",
+    )
+    if value is None:
+        logger.error("cTrader callback: account payload missing id field; keys=%s", sorted(account.keys()))
+        raise HTTPException(status_code=502, detail="cTrader account payload missing account id")
+    return int(value)
+
+
 def _upsert_connection(*, email: str, account: dict, tokens: dict) -> None:
     f = _fernet()
     enc_access  = f.encrypt(tokens["access_token"].encode("utf-8")).decode("ascii")
@@ -160,11 +181,11 @@ def _upsert_connection(*, email: str, account: dict, tokens: dict) -> None:
                 """,
                 (
                     email,
-                    int(account["ctidTraderAccountId"]),
-                    account.get("brokerName"),
-                    account.get("accountLabel") or account.get("traderLogin"),
+                    _account_id(account),
+                    _account_field(account, "brokerName", "brokerTitle"),
+                    _account_field(account, "accountLabel", "traderLogin", "accountNumber"),
                     bool(account.get("live", False)),
-                    account.get("depositCurrency"),
+                    _account_field(account, "depositCurrency", "currency"),
                     enc_access,
                     enc_refresh,
                     expires_at,
