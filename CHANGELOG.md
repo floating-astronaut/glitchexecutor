@@ -13,7 +13,9 @@ Body text (if present) shown as indented sub-bullets.
 
 ## 2026-05-17
 
-- **05:32 UTC** — auto-sync: 2026-05-17 05:32 UTC (`b78f837`) — 1 file
+- **05:47 UTC** — auto-sync: 2026-05-17 05:47 UTC (`9d42191`) — 1 file
+        M	docker-compose.yml
+- **05:32 UTC** — auto-sync: 2026-05-17 05:32 UTC (`7dc77b6`) — 2 files
         M	admin_api/routers/ctrader_oauth.py
 
 ## 2026-05-16

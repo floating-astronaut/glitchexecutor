@@ -112,6 +112,7 @@ services:
       SA_DATABASE_URL: postgresql://glitch_sa_ro:${SA_RO_PASSWORD}@/glitch_sales_agent?host=/var/run/postgresql&options=-c%20search_path%3Dsales_agent%2Cpublic
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      SSO_VALIDATE_URL: ${SSO_VALIDATE_URL:-https://sso.glitchexecutor.com/auth/validate}
       DASHBOARD_URL: http://172.17.0.1:5000
       ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@glitchexecutor.com}
