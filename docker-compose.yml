@@ -76,6 +76,13 @@ services:
       TIKTOK_CAPI_TOKEN: ${TIKTOK_CAPI_TOKEN}
       ADMIN_TOKEN: ${ADMIN_TOKEN}
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}
+      # Glitch Grow fulfillment dispatcher — when a Stripe webhook
+      # arrives with a BSK-* SKU, the Flask handler POSTs to the
+      # Cloudflare Pages /api/fulfill/grant-access endpoint protected
+      # by this shared secret. Without it the dispatch silently
+      # no-ops and buyers get no Codeberg invite / welcome email.
+      GROW_FULFILL_SECRET: ${GROW_FULFILL_SECRET}
+      GROW_FULFILL_URL: ${GROW_FULFILL_URL:-https://grow.glitchexecutor.com/api/fulfill/grant-access}
     ports:
       - "127.0.0.1:5002:5002"
     healthcheck:
@@ -113,6 +120,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       SSO_VALIDATE_URL: ${SSO_VALIDATE_URL:-https://sso.glitchexecutor.com/auth/validate}
+      CTRADER_PUBLIC_CLIENT_ID: ${CTRADER_PUBLIC_CLIENT_ID}
+      CTRADER_PUBLIC_CLIENT_SECRET: ${CTRADER_PUBLIC_CLIENT_SECRET}
+      CTRADER_PUBLIC_REDIRECT_URI: ${CTRADER_PUBLIC_REDIRECT_URI:-https://trade.glitchexecutor.com/oauth/ctrader/callback}
+      CTRADER_OAUTH_SCOPE: ${CTRADER_OAUTH_SCOPE:-accounts}
       DASHBOARD_URL: http://172.17.0.1:5000
       ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@glitchexecutor.com}
@@ -120,6 +131,19 @@ services:
       DOCKER_HOST: tcp://docker-proxy:2375
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}
       TRADE_WEBHOOK_SECRET: ${TRADE_WEBHOOK_SECRET}
+      # Customer-management proxy → payment service (Grow buyers + leads)
+      GROW_FULFILL_SECRET: ${GROW_FULFILL_SECRET}
+      PAYMENT_SERVICE_URL: http://payment:5002
+      # Trade-admin proxy → glitch-trade-api /v1/admin/* (Revenue / Users /
+      # Subscriptions surface). Secret stays here; never bundled in the SPA.
+      TRADE_ADMIN_API_SECRET: ${TRADE_ADMIN_API_SECRET}
+      TRADE_API_URL: ${TRADE_API_URL:-http://172.17.0.1:3112}
+      # SSO cookie validator — admin_api hits the public SSO URL (the SSO
+      # process binds 127.0.0.1:6000 only, which the container cannot reach
+      # over the docker bridge). Goes out via Cloudflare → nginx → gunicorn.
+      # User-facing cTrader OAuth (Settings → Connect cTrader account)
+      # Must match what's registered in the Spotware dev portal for the
+      # public client. Updated 2026-05-16 after SPA renamed trade-app.* → trade.*
     volumes:
       - /var/run/postgresql:/var/run/postgresql:ro
     ports:

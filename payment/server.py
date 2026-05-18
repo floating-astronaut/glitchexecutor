@@ -154,28 +154,132 @@ def _sha256(value: str) -> str:
     return hashlib.sha256(value.strip().lower().encode()).hexdigest()
 
 
-def send_meta_capi_purchase(customer_email: str, tier: str, price_id: str,
+def _is_sha256_hex(s) -> bool:
+    return isinstance(s, str) and len(s) == 64 and all(c in "0123456789abcdef" for c in s.lower())
+
+
+def _h(value):
+    """Hash if not already a sha256 hex digest. Returns '' for empty input."""
+    if not value:
+        return ""
+    s = str(value).strip()
+    return s.lower() if _is_sha256_hex(s) else _sha256(s)
+
+
+def _client_ip_from_request():
+    """Real client IP behind nginx (X-Forwarded-For first hop)."""
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.headers.get("X-Real-IP") or request.remote_addr or ""
+
+
+def _extract_capi_context_from_request():
+    """Capture browser identifiers at checkout-create time for later CAPI use.
+
+    Returns a flat dict of strings safe to embed in Stripe metadata
+    (Stripe caps each value at 500 chars; keys at 50, total 50 kv pairs).
+    """
+    cookies = request.cookies or {}
+    fbc = cookies.get("_fbc", "") or ""
+    fbp = cookies.get("_fbp", "") or ""
+    fbclid = ""
+    if not fbc:
+        # Frontend may post fbclid explicitly, or Referer/origin URL carries it.
+        body = (request.get_json(silent=True) or {}) if request.is_json else {}
+        fbclid = body.get("fbclid", "") or request.args.get("fbclid", "") or ""
+        if fbclid:
+            fbc = f"fb.1.{int(time.time())}.{fbclid}"
+    return {
+        "fbc":         fbc[:500],
+        "fbp":         fbp[:500],
+        "client_ip":   (_client_ip_from_request() or "")[:500],
+        "client_ua":   (request.headers.get("User-Agent", "") or "")[:500],
+        "src_url":     (request.headers.get("Referer", "") or "")[:500],
+    }
+
+
+def _build_capi_user_data(session: dict, extra: dict = None) -> dict:
+    """Construct Meta-CAPI user_data from a Stripe checkout.session + stored metadata.
+
+    Pulls hashed PII (em/ph/fn/ln/ct/st/zp/country) from session.customer_details,
+    raw fbc/fbp/IP/UA from session.metadata, and stable external_id from
+    Stripe customer id (fallback: telegram_id from metadata).
+    """
+    session  = session or {}
+    md       = session.get("metadata") or {}
+    cust     = session.get("customer_details") or {}
+    addr     = cust.get("address") or {}
+    extra    = extra or {}
+
+    email = cust.get("email") or session.get("customer_email") or extra.get("email") or ""
+    phone = cust.get("phone") or extra.get("phone") or ""
+    name  = cust.get("name")  or extra.get("name")  or ""
+
+    fn, ln = "", ""
+    if name:
+        parts = name.strip().split(None, 1)
+        fn = parts[0]
+        ln = parts[1] if len(parts) > 1 else ""
+
+    phone_digits = "".join(c for c in str(phone) if c.isdigit())
+
+    external_id = (
+        session.get("customer")
+        or md.get("telegram_id")
+        or md.get("external_id")
+        or ""
+    )
+
+    ud = {}
+    if email:        ud["em"]       = [_h(email)]
+    if phone_digits: ud["ph"]       = [_h(phone_digits)]
+    if fn:           ud["fn"]       = [_h(fn)]
+    if ln:           ud["ln"]       = [_h(ln)]
+    if addr.get("city"):        ud["ct"]      = [_h(addr["city"].replace(" ", ""))]
+    if addr.get("state"):       ud["st"]      = [_h(addr["state"])]
+    if addr.get("postal_code"): ud["zp"]      = [_h(addr["postal_code"])]
+    if addr.get("country"):     ud["country"] = [_h(addr["country"])]
+    if external_id:             ud["external_id"] = [_h(external_id)]
+
+    fbc = md.get("fbc") or ""
+    fbp = md.get("fbp") or ""
+    if fbc: ud["fbc"] = fbc
+    if fbp: ud["fbp"] = fbp
+
+    client_ip = md.get("client_ip") or ""
+    client_ua = md.get("client_ua") or ""
+    if client_ip: ud["client_ip_address"] = client_ip
+    if client_ua: ud["client_user_agent"] = client_ua
+
+    return ud
+
+
+def send_meta_capi_purchase(session: dict, tier: str, price_id: str,
                              event_id: str = "") -> None:
     """
     Send a Purchase event to Meta Conversions API (server-side).
-    Fires on checkout.session.completed — no browser deduplication needed
-    since the browser pixel does not fire Purchase on redirect.
+    Fires on checkout.session.completed. Built from the full Stripe session
+    so we can attach hashed PII, address, fbc/fbp cookies (captured at
+    checkout-create), client IP/UA, and external_id — all of which Meta's
+    Event Match Quality scores against.
     Docs: https://developers.facebook.com/docs/marketing-api/conversions-api
     """
     if not META_CAPI_TOKEN:
         return
     try:
-        value    = PRICE_VALUES.get(price_id, 0.0)
-        ev_id    = event_id or f"pur_{int(time.time())}"
-        payload  = {
+        value     = PRICE_VALUES.get(price_id, 0.0)
+        ev_id     = event_id or f"pur_{int(time.time())}"
+        user_data = _build_capi_user_data(session)
+        src_url   = (session.get("metadata") or {}).get("src_url", "") or "https://grow.glitchexecutor.com/success"
+        payload   = {
             "data": [{
-                "event_name":    "Purchase",
-                "event_time":    int(time.time()),
-                "event_id":      ev_id,
-                "action_source": "website",
-                "user_data": {
-                    "em": [_sha256(customer_email)] if customer_email else [],
-                },
+                "event_name":       "Purchase",
+                "event_time":       int(time.time()),
+                "event_id":         ev_id,
+                "action_source":    "website",
+                "event_source_url": src_url,
+                "user_data":        user_data,
                 "custom_data": {
                     "value":        value,
                     "currency":     "USD",
@@ -189,7 +293,7 @@ def send_meta_capi_purchase(customer_email: str, tier: str, price_id: str,
                 f"/events?access_token={META_CAPI_TOKEN}")
         resp = requests.post(url, json=payload, timeout=6)
         logger.info(f"Meta CAPI Purchase → tier={tier} value={value} "
-                    f"status={resp.status_code}")
+                    f"ud_keys={sorted(user_data.keys())} status={resp.status_code}")
     except Exception as e:
         logger.warning(f"Meta CAPI send failed: {e}")
 
@@ -215,7 +319,7 @@ def send_tiktok_capi_purchase(customer_email: str, tier: str, price_id: str,
                     "email": _sha256(customer_email) if customer_email else "",
                 },
                 "page": {
-                    "url": "https://glitchexecutor.com/success",
+                    "url": "https://grow.glitchexecutor.com/success",
                 },
             },
             "properties": {
@@ -482,11 +586,14 @@ def create_checkout_session():
         if not price_id:
             return jsonify({"error": "Invalid tier"}), 400
 
+        capi_ctx = _extract_capi_context_from_request()
+
         session = stripe.checkout.Session.create(
             line_items=[{"price": price_id, "quantity": 1}],
             mode="subscription",
-            success_url="https://glitchexecutor.com/success?session_id={CHECKOUT_SESSION_ID}",
+            success_url="https://grow.glitchexecutor.com/success?session_id={CHECKOUT_SESSION_ID}",
             cancel_url="https://glitchexecutor.com/#pricing",
+            phone_number_collection={"enabled": True},
             # Ask for Telegram username at checkout
             custom_fields=[{
                 "key": "telegram_username",
@@ -495,9 +602,10 @@ def create_checkout_session():
                 "optional": False,
             }],
             metadata={
-                "tier": tier,
-                "billing": billing,
-                "price_id": price_id,
+                "tier":      tier,
+                "billing":   billing,
+                "price_id":  price_id,
+                **capi_ctx,
             }
         )
 
@@ -549,8 +657,9 @@ def bot_checkout():
         session = stripe.checkout.Session.create(
             line_items=[{"price": price_id, "quantity": 1}],
             mode="subscription",
-            success_url="https://glitchexecutor.com/success?session_id={CHECKOUT_SESSION_ID}",
+            success_url="https://grow.glitchexecutor.com/success?session_id={CHECKOUT_SESSION_ID}",
             cancel_url="https://t.me/GlitchExecutorBot",   # sends them back to the bot
+            phone_number_collection={"enabled": True},
             metadata={
                 "tier":              tier,
                 "billing":           billing,
@@ -685,7 +794,7 @@ def stripe_webhook():
 
         # ── CAPI: Purchase (server-side conversion events) ───────────────────
         capi_event_id = f"pur_{session['id']}"
-        send_meta_capi_purchase(customer_email, tier, price_id, event_id=capi_event_id)
+        send_meta_capi_purchase(session, tier, price_id, event_id=capi_event_id)
         send_tiktok_capi_purchase(customer_email, tier, price_id, event_id=capi_event_id)
 
         # ── Telegram: welcome ───────────────────────────────────────────────
@@ -786,11 +895,21 @@ def session_status():
                 telegram_username = (field.get("text", {}).get("value") or "").strip()
                 break
 
+        tier_v = session.metadata.get("tier", "")
+        price_v = session.metadata.get("price_id", "")
+        value = PRICE_VALUES.get(price_v, 0.0)
         return jsonify({
             "status":           session.status,
-            "tier":             session.metadata.get("tier", ""),
+            "tier":             tier_v,
             "telegram_username": telegram_username,
             "customer_email":   session.customer_details.email if session.customer_details else None,
+            # For browser-side Purchase dedup with server-side CAPI:
+            # frontend should fire fbq('track','Purchase',{value,currency},{eventID})
+            "purchase": {
+                "event_id": f"pur_{session.id}",
+                "value":    value,
+                "currency": "USD",
+            },
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1502,6 +1621,18 @@ def grow_record_buyer():
     if data["provider"] not in ("stripe", "razorpay"):
         return jsonify({"ok": False, "error": "bad-provider"}), 400
 
+    # Belt-and-braces guard: refuse synthetic smoke/verify payment_ids that
+    # historically flooded this endpoint (~16K rows over 5 days, 2026-05-07
+    # → 2026-05-12). CF Pages grant-access.ts has the primary block; this
+    # is a second wall in case the source ever bypasses grant-access and
+    # writes here directly. Returns 200 so the caller doesn't retry.
+    pid = str(data.get("payment_id", ""))
+    em  = str(data.get("email", "")).lower()
+    if (pid.startswith("smoke_") or pid.startswith("capi_verify_")
+            or em == "smoke-test@glitchexecutor.com"
+            or em == "capi-verify@glitchexecutor.com"):
+        return jsonify({"ok": True, "no_op": True, "reason": "smoke-or-verify-test-blocked"}), 200
+
     amount_minor = int(round(float(data["amount"]) * 100))
     fulfilled    = bool(data.get("fulfilled", True))
     notes_json   = json.dumps(data.get("notes") or {})
@@ -1592,17 +1723,21 @@ def grow_list_buyers():
                 rows = cur.fetchall()
         out = []
         for r in rows:
+            # get_db() uses RealDictCursor — access by column name, not index.
             out.append({
-                "id": r[0], "payment_id": r[1], "provider": r[2], "sku": r[3],
-                "email": r[4], "github_username": r[5], "buyer_name": r[6],
-                "amount_minor": r[7], "currency": r[8], "promo_code": r[9],
-                "notes": r[10], "created_at": r[11].isoformat() if r[11] else None,
-                "fulfilled_at": r[12].isoformat() if r[12] else None,
-                "refunded_at": r[13].isoformat() if r[13] else None,
+                "id": r["id"], "payment_id": r["payment_id"],
+                "provider": r["provider"], "sku": r["sku"],
+                "email": r["email"], "github_username": r["github_username"],
+                "buyer_name": r["buyer_name"],
+                "amount_minor": r["amount_minor"], "currency": r["currency"],
+                "promo_code": r["promo_code"], "notes": r["notes"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+                "fulfilled_at": r["fulfilled_at"].isoformat() if r["fulfilled_at"] else None,
+                "refunded_at": r["refunded_at"].isoformat() if r["refunded_at"] else None,
             })
         return jsonify({"ok": True, "count": len(out), "buyers": out})
     except Exception as e:
-        logger.error(f"grow_list_buyers failed: {e}")
+        logger.error(f"grow_list_buyers failed: {type(e).__name__}: {e}")
         return jsonify({"ok": False, "error": "db-error"}), 500
 
 
@@ -1632,9 +1767,163 @@ def grow_refund_buyer():
                 conn.commit()
         if not row:
             return jsonify({"ok": False, "error": "not-found", "payment_id": payment_id}), 404
-        return jsonify({"ok": True, "id": row[0], "payment_id": payment_id})
+        return jsonify({"ok": True, "id": row["id"], "payment_id": payment_id})
     except Exception as e:
         logger.error(f"grow_refund_buyer failed: {e}")
+        return jsonify({"ok": False, "error": "db-error"}), 500
+
+
+# ─── Customer-management endpoints (stubs — bodies in follow-up) ────────────
+# Auth: same x-fulfill-secret as the other /api/grow/* endpoints. The dashboard's
+# admin_api proxies these and adds the secret server-side; the browser never
+# sees it.
+
+@app.route("/api/grow/buyer/<payment_id>/detail", methods=["GET"])
+def grow_buyer_detail(payment_id):
+    """Joined view: buyer row + Codeberg invite state + Discord membership +
+    Resend welcome state + CAPI status. v1 stub returns the raw buyer row plus
+    placeholder fulfillment-sink flags so the UI can render the timeline shell.
+    """
+    if not _check_fulfill_secret():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, payment_id, provider, sku, email, github_username,
+                           buyer_name, amount_minor, currency, promo_code, notes,
+                           created_at, fulfilled_at, refunded_at
+                    FROM glitch_grow_buyers
+                    WHERE payment_id = %s
+                    LIMIT 1
+                """, (payment_id,))
+                r = cur.fetchone()
+    except Exception as e:
+        logger.error(f"grow_buyer_detail failed: {e}")
+        return jsonify({"ok": False, "error": "db-error"}), 500
+
+    if not r:
+        return jsonify({"ok": False, "error": "not-found"}), 404
+
+    notes = r["notes"] or {}
+    buyer = {
+        "id": r["id"], "payment_id": r["payment_id"],
+        "provider": r["provider"], "sku": r["sku"],
+        "email": r["email"], "github_username": r["github_username"],
+        "buyer_name": r["buyer_name"],
+        "amount_minor": r["amount_minor"], "currency": r["currency"],
+        "promo_code": r["promo_code"], "notes": notes,
+        "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+        "fulfilled_at": r["fulfilled_at"].isoformat() if r["fulfilled_at"] else None,
+        "refunded_at": r["refunded_at"].isoformat() if r["refunded_at"] else None,
+    }
+
+    # Stub: derive timeline-sink state from whatever `notes` happens to contain.
+    # The real implementation will live-poll Codeberg/Discord/Resend.
+    sinks = {
+        "payment_captured":     {"status": "ok",      "at": buyer["created_at"]},
+        "ledger_write":         {"status": "ok",      "at": buyer["created_at"]},
+        "welcome_email":        {"status": "ok" if notes.get("welcome_email_id") else "pending",
+                                  "message_id": notes.get("welcome_email_id")},
+        "codeberg_invite":      {"status": "stub",    "repos": [], "detail": "live-poll TBD"},
+        "discord_role":         {"status": "stub",    "linked": bool(notes.get("discord_id"))},
+        "capi_meta":            {"status": notes.get("capi_meta_status") or "pending",
+                                  "event_id": buyer["payment_id"]},
+        "capi_tiktok":          {"status": notes.get("capi_tiktok_status") or "pending",
+                                  "event_id": buyer["payment_id"]},
+    }
+
+    return jsonify({"ok": True, "stub": True, "buyer": buyer, "sinks": sinks, "activity": []})
+
+
+@app.route("/api/grow/leads", methods=["GET"])
+def grow_list_leads():
+    """List Vibe Kit leads. v1 stub returns an empty list — implementation pulls
+    from Google Sheet `leads` + Resend `kit-leads` audience and merges by email.
+    """
+    if not _check_fulfill_secret():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+    return jsonify({"ok": True, "stub": True, "leads": [], "count": 0})
+
+
+@app.route("/api/grow/resend-welcome", methods=["POST"])
+def grow_resend_welcome():
+    """Re-render + send the welcome email via Resend. v1 stub validates input
+    and returns ok=False with stub=True so the UI can wire its mutation without
+    actually re-sending until the body lands.
+    """
+    if not _check_fulfill_secret():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        return jsonify({"ok": False, "error": "bad-request"}), 400
+    payment_id = (data.get("payment_id") or "").strip()
+    if not payment_id:
+        return jsonify({"ok": False, "error": "missing-payment-id"}), 400
+    return jsonify({"ok": False, "stub": True, "payment_id": payment_id,
+                    "error": "not-implemented",
+                    "next": "wire Resend template render + send + update notes.welcome_email_id"})
+
+
+@app.route("/api/grow/reinvite-codeberg", methods=["POST"])
+def grow_reinvite_codeberg():
+    """Re-fire the Codeberg collaborator invite for a buyer's SKU repos. v1
+    stub validates input only.
+    """
+    if not _check_fulfill_secret():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        return jsonify({"ok": False, "error": "bad-request"}), 400
+    payment_id = (data.get("payment_id") or "").strip()
+    if not payment_id:
+        return jsonify({"ok": False, "error": "missing-payment-id"}), 400
+    return jsonify({"ok": False, "stub": True, "payment_id": payment_id,
+                    "github_username": data.get("github_username"),
+                    "error": "not-implemented",
+                    "next": "wire Codeberg PUT /repos/{owner}/{repo}/collaborators/{user}"})
+
+
+@app.route("/api/grow/buyer-note", methods=["POST"])
+def grow_buyer_note():
+    """Append a free-form note onto glitch_grow_buyers.notes JSONB. Real
+    implementation; not a stub — append-only ops note is small + safe.
+    """
+    if not _check_fulfill_secret():
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        return jsonify({"ok": False, "error": "bad-request"}), 400
+    payment_id = (data.get("payment_id") or "").strip()
+    note = (data.get("note") or "").strip()
+    if not payment_id or not note:
+        return jsonify({"ok": False, "error": "missing-fields"}), 400
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE glitch_grow_buyers
+                       SET notes = COALESCE(notes, '{}'::jsonb)
+                                   || jsonb_build_object('ops_notes',
+                                        COALESCE(notes->'ops_notes', '[]'::jsonb)
+                                        || jsonb_build_array(jsonb_build_object(
+                                             'at', to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                                             'note', %s
+                                           )))
+                     WHERE payment_id = %s
+                    RETURNING id
+                """, (note, payment_id))
+                row = cur.fetchone()
+                conn.commit()
+        if not row:
+            return jsonify({"ok": False, "error": "not-found"}), 404
+        return jsonify({"ok": True, "id": row["id"], "payment_id": payment_id})
+    except Exception as e:
+        logger.error(f"grow_buyer_note failed: {e}")
         return jsonify({"ok": False, "error": "db-error"}), 500
 
 
@@ -1707,7 +1996,7 @@ def _create_trial_checkout_url(telegram_id: int, plan: str):
         session = stripe.checkout.Session.create(
             line_items=[{"price": price_id, "quantity": 1}],
             mode="subscription",
-            success_url="https://glitchexecutor.com/success?session_id={CHECKOUT_SESSION_ID}",
+            success_url="https://grow.glitchexecutor.com/success?session_id={CHECKOUT_SESSION_ID}",
             cancel_url="https://glitchexecutor.com/#pricing",
             metadata={
                 "tier":        plan,
