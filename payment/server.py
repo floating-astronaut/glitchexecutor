@@ -1008,44 +1008,10 @@ def _run_bot_migrations():
                     ALTER TABLE telegram_users
                         ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMPTZ
                 """)
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS trial_messages_log (
-                        id          SERIAL PRIMARY KEY,
-                        telegram_id BIGINT  NOT NULL,
-                        day_num     INTEGER NOT NULL,
-                        sent_at     TIMESTAMPTZ DEFAULT NOW(),
-                        UNIQUE(telegram_id, day_num)
-                    )
-                """)
-                cur.execute("""
-                    ALTER TABLE trial_signups
-                        ADD COLUMN IF NOT EXISTS bot_token VARCHAR(36)
-                """)
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_trial_signups_bot_token
-                        ON trial_signups (bot_token)
-                """)
-                # ── Glitch Grow buyers — agent kit purchases ────────────────
-                # Idempotency key: payment_id (UNIQUE). Re-running webhooks
-                # bumps fulfilled_at via ON CONFLICT in the helper.
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS glitch_grow_buyers (
-                        id              BIGSERIAL PRIMARY KEY,
-                        payment_id      TEXT        NOT NULL UNIQUE,
-                        provider        TEXT        NOT NULL CHECK (provider IN ('stripe','razorpay')),
-                        sku             TEXT        NOT NULL,
-                        email           TEXT        NOT NULL,
-                        github_username TEXT,
-                        buyer_name      TEXT,
-                        amount_minor    INTEGER     NOT NULL,
-                        currency        TEXT        NOT NULL,
-                        promo_code      TEXT,
-                        notes           JSONB       NOT NULL DEFAULT '{}'::jsonb,
-                        created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-                        fulfilled_at    TIMESTAMPTZ,
-                        refunded_at     TIMESTAMPTZ
-                    )
-                """)
+                # CREATE TABLE trial_messages_log removed 2026-05-18 — table now in PG17 glitch_trade via postgres_fdw
+                # ALTER TABLE trial_signups removed — schema lives in PG17 now
+                # CREATE INDEX idx_trial_signups_bot_token removed — schema lives in PG17 now
+                # CREATE TABLE glitch_grow_buyers removed 2026-05-18 — BSK retired; table dropped
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_grow_buyers_email      ON glitch_grow_buyers(email)")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_grow_buyers_sku        ON glitch_grow_buyers(sku)")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_grow_buyers_provider   ON glitch_grow_buyers(provider)")
