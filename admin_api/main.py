@@ -10,6 +10,8 @@ from routers import control_centre as cc_router, admin_mgmt as admin_router
 from routers import customers as customers_router
 from routers import ctrader_oauth as ctrader_oauth_router
 from routers import trade_admin as trade_admin_router
+from routers import infra_docs as infra_docs_router
+from tasks.infra_docs_sync import start_background_sync
 
 
 app = FastAPI(title="GlitchExecutor Admin API", version="1.0.0")
@@ -53,6 +55,10 @@ app.include_router(ctrader_oauth_router.router, prefix="/api/ctrader", tags=["ct
 # Trade-admin proxy — forwards to glitch-trade-api /v1/admin/* with
 # X-Admin-Secret injected server-side so the SPA never sees the secret.
 app.include_router(trade_admin_router.router, prefix="/api/trade-admin", tags=["trade_admin"])
+# Infra docs — read-only operator view of the SERVER_*.md system map.
+# Populated by a 5-minute background task; manual refresh via POST
+# /api/infra-docs/sync. See docs/INFRA_VIEW_PLAN.md in the SPA repo.
+app.include_router(infra_docs_router.router, prefix="/api/infra-docs", tags=["infra_docs"])
 
 # Auth router is included separately at /auth prefix
 from routers import auth as auth_router
@@ -66,6 +72,12 @@ async def startup():
     seed_admin(conn)
     conn.close()
     # Legacy MT5 reconciliation task removed — Ouroboros (cTrader) is the live stack.
+
+
+# Schedule the infra-docs sync loop. Registers its own on_event("startup")
+# hook so the periodic task is created once FastAPI is ready. 5-minute
+# cadence per docs/INFRA_VIEW_PLAN.md §2.
+start_background_sync(app, interval_sec=300)
 
 
 @app.get("/health")

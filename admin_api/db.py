@@ -78,6 +78,30 @@ def run_migrations():
             created_at TIMESTAMPTZ DEFAULT NOW()
         )
     """)
+    # ── infra_docs — cache of the SERVER_*.md system map ────────────────────
+    # Read-only operator view (admin_api/routers/infra_docs.py). Populated
+    # by tasks/infra_docs_sync.py on a 5-minute background task + the
+    # POST /api/infra-docs/sync button. Source of truth is the Markdown
+    # files in /home/support/glitch-trade-app/docs/. The DB row is a
+    # cache — every operator-visible field is derivable from re-running
+    # the sync. See glitch-admin-dashboard/docs/INFRA_VIEW_PLAN.md.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS infra_docs (
+            slug          TEXT PRIMARY KEY,
+            title         TEXT NOT NULL,
+            source_path   TEXT NOT NULL,
+            section_num   INT,
+            content_md    TEXT NOT NULL,
+            content_hash  TEXT NOT NULL,
+            bytes         INT NOT NULL,
+            last_modified TIMESTAMPTZ NOT NULL,
+            last_synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS infra_docs_section_idx
+            ON infra_docs (section_num)
+    """)
     # ── Trade-domain tables MIGRATED to PG17 (2026-05-18) ─────────────────────
     # bot_heartbeats, bot_positions, bot_events, oracle_alerts,
     # user_ctrader_connections, plus 9 other Trade tables (trades, signal_*,

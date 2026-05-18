@@ -146,6 +146,11 @@ services:
       # public client. Updated 2026-05-16 after SPA renamed trade-app.* → trade.*
     volumes:
       - /var/run/postgresql:/var/run/postgresql:ro
+      # Read-only mount of the trade-app docs checkout — source for
+      # the infra-docs sync (see admin_api/tasks/infra_docs_sync.py).
+      # Same path inside the container as on the host so SOURCE_DIR
+      # default works without an env override.
+      - /home/support/glitch-trade-app/docs:/home/support/glitch-trade-app/docs:ro
     ports:
       - "127.0.0.1:5004:5003"
     healthcheck:
