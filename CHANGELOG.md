@@ -307,3 +307,37 @@ Body text (if present) shown as indented sub-bullets.
 
 - **22:17 UTC** — Initial commit — Glitch Executor platform, dashboard, and website (`11453be`) — 171 files
     Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+## 2026-05-18 — item-6 PG migration attempt (partially attempted, rolled back)
+
+Attempted to migrate 14 Trade-domain tables (trades, bot_*, exchange_keys,
+user_ctrader_connections, trial_*, etc.) from the Admin Docker PG16
+container to PG17 `glitch_trade` via postgres_fdw. Hit a fundamental
+FDW limitation: postgres_fdw INSERTs explicitly include all columns
+including SERIAL `id` columns set to NULL, which violates PG17's
+NOT NULL constraint (the remote sequence default only auto-fills when
+the column is OMITTED from the INSERT, not when it's set to NULL).
+
+Rolled back to native PG16 tables (restored from
+gs://glitch-vm-transfer/db-backups/2026-05-18/glitchexecutor-pg16-pre-pg17-migration.sql.gz).
+
+Source-side artifacts preserved:
+- `admin_api/db.py` no longer recreates the 5 Trade tables in
+  `run_migrations()` (only `admin_users` + `audit_log` remain).
+- `payment/server.py` no longer recreates `trial_messages_log` or
+  `glitch_grow_buyers` (BSK retirement removed the latter anyway).
+
+These changes are harmless against the rolled-back PG16 state (the
+CREATE TABLE IF NOT EXISTS blocks were no-ops because the tables
+already exist). They become the right shape for a future migration
+attempt using the Flask dual-pool code-refactor approach instead of
+postgres_fdw.
+
+PG17 changes:
+- `listen_addresses` kept widened to `'localhost,172.17.0.1'`
+  (harmless without a matching pg_hba rule).
+- Docker-bridge pg_hba rule removed.
+
+Future-attempt notes: do not retry postgres_fdw. Use a Flask dual
+connection-pool refactor (35 query sites across 5 files: payment/server.py
++ admin_api/routers/{admin_mgmt,clients,ctrader_oauth,webhook}.py).
