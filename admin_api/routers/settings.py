@@ -8,17 +8,39 @@ from db import get_pg, log_audit
 
 router = APIRouter()
 
+# What admin_api actually reads from the environment in 2026.
+# Refreshed 2026-05-18 — the previous list still referenced
+# TELEGRAM_WEBHOOK_SECRET (gone from the codebase) and was missing
+# the cTrader OAuth, payment-server, trade-admin, and Redis vars
+# that admin_api genuinely depends on today. Grouped by purpose; the
+# admin dashboard renders the groups verbatim. Presence only — values
+# are never returned over the wire.
 ENV_VARS_TO_CHECK = [
-    # Auth + crypto
+    # Auth + bootstrap
+    "ADMIN_EMAIL",
+    "ADMIN_PASSWORD",
     "ADMIN_JWT_SECRET",
-    # Databases
+    # Databases (admin_api PG16 + read-only views into product DBs)
     "DATABASE_URL",
     "ML_DATABASE_URL",
-    # Webhook secrets (admin_api receives bot trade webhooks)
-    "TELEGRAM_WEBHOOK_SECRET",
+    "SA_DATABASE_URL",
+    "REDIS_HOST",
+    "REDIS_PORT",
+    # Upstream proxies (admin_api forwards to these on behalf of the SPA)
+    "PAYMENT_SERVICE_URL",
+    "GROW_FULFILL_SECRET",
+    "TRADE_API_URL",
+    "TRADE_ADMIN_API_SECRET",
+    # OAuth + customer-facing broker integrations
+    "CTRADER_PUBLIC_CLIENT_ID",
+    "CTRADER_PUBLIC_CLIENT_SECRET",
+    "CTRADER_OAUTH_SCOPE",
+    "IB_HOST",
+    "IB_PORT",
+    # Webhook secret (incoming trade-event POSTs from bots)
     "TRADE_WEBHOOK_SECRET",
-    # Docker socket proxy URL (control centre + infra)
-    "DOCKER_HOST",
+    # SSO
+    "SSO_TIMEOUT_SECONDS",
 ]
 
 
