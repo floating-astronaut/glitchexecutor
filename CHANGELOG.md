@@ -11,9 +11,25 @@ Body text (if present) shown as indented sub-bullets.
 
 ---
 
+## 2026-05-18
+
+- **02:17 UTC** — auto-sync: 2026-05-18 02:17 UTC (`097fd30`) — 1 file
+        M	admin_api/db.py
+- **00:04 UTC** — chore(admin): cherry-pick live /opt edits into source — CAPI tracking + env wiring (`7435302`) — 2 files
+    Captures uncommitted edits that lived only on /opt/glitchexecutor and
+    never made it back to source. /opt is a strict superset of source for
+    both files (same BSK fulfillment + buyer ledger + grow features as
+    source, PLUS the items below).
+    payment/server.py (+289 lines):
+    - _is_sha256_hex(s) — check if already hashed
+    - _h(value) — hash-if-not-already-hashed (smarter than bare _sha256)
+    - _client_ip_from_request() — real IP behind nginx (X-Forwarded-For)
+    - _extract_capi_context_from_request() — capture _fbc/_fbp/fbclid
+      browser cookies at checkout-create time
+
 ## 2026-05-17
 
-- **05:47 UTC** — auto-sync: 2026-05-17 05:47 UTC (`9d42191`) — 1 file
+- **05:47 UTC** — auto-sync: 2026-05-17 05:47 UTC (`0cc9ad8`) — 2 files
         M	docker-compose.yml
 - **05:32 UTC** — auto-sync: 2026-05-17 05:32 UTC (`7dc77b6`) — 2 files
         M	admin_api/routers/ctrader_oauth.py

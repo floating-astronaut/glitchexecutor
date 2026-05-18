@@ -78,131 +78,14 @@ def run_migrations():
             created_at TIMESTAMPTZ DEFAULT NOW()
         )
     """)
-    # ── Bot trading tables ─────────────────────────────────────────────────────
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bot_heartbeats (
-            bot         TEXT PRIMARY KEY,
-            account     INTEGER,
-            iteration   INTEGER,
-            last_seen   TIMESTAMPTZ DEFAULT NOW(),
-            details     JSONB
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bot_positions (
-            id          SERIAL PRIMARY KEY,
-            bot         TEXT NOT NULL,
-            account     INTEGER,
-            symbol      TEXT NOT NULL,
-            direction   TEXT,
-            trigger     TEXT,
-            strategy    TEXT,
-            entry_price REAL,
-            sl          REAL,
-            tp          REAL,
-            volume      REAL,
-            timeframe   TEXT,
-            confidence  REAL,
-            rsi         REAL,
-            atr         REAL,
-            h1_trend    TEXT,
-            adx         REAL,
-            ticket      INTEGER,
-            trail_count INTEGER DEFAULT 0,
-            is_open     BOOLEAN DEFAULT TRUE,
-            exit_reason TEXT,
-            exit_rsi    REAL,
-            opened_at   TIMESTAMPTZ,
-            closed_at   TIMESTAMPTZ,
-            received_at TIMESTAMPTZ DEFAULT NOW()
-        )
-    """)
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_bot_pos_open
-        ON bot_positions(is_open, bot)
-    """)
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_bot_pos_ticket
-        ON bot_positions(ticket) WHERE ticket IS NOT NULL
-    """)
-    # Idempotent column additions (safe to run on existing tables)
-    cursor.execute("""
-        ALTER TABLE bot_positions
-            ADD COLUMN IF NOT EXISTS sl_updated_at TIMESTAMPTZ
-    """)
-    cursor.execute("""
-        ALTER TABLE bot_positions
-            ADD COLUMN IF NOT EXISTS details JSONB
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bot_events (
-            id              SERIAL PRIMARY KEY,
-            bot             TEXT NOT NULL,
-            event_type      TEXT NOT NULL,
-            account         INTEGER,
-            symbol          TEXT,
-            ticket          INTEGER,
-            trigger         TEXT,
-            direction       TEXT,
-            entry_price     REAL,
-            old_sl          REAL,
-            new_sl          REAL,
-            rsi             REAL,
-            details         JSONB,
-            event_timestamp TEXT,
-            received_at     TIMESTAMPTZ DEFAULT NOW()
-        )
-    """)
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_bot_events_recv
-        ON bot_events(received_at DESC)
-    """)
-    # ── Oracle coordinator tables ──────────────────────────────────────────────
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS oracle_alerts (
-            id          SERIAL PRIMARY KEY,
-            event_type  TEXT NOT NULL,
-            severity    TEXT NOT NULL DEFAULT 'warning',
-            message     TEXT DEFAULT '',
-            details     JSONB,
-            dismissed   BOOLEAN DEFAULT FALSE,
-            received_at TIMESTAMPTZ DEFAULT NOW()
-        )
-    """)
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_oracle_alerts_recv
-        ON oracle_alerts(received_at DESC)
-    """)
-    # ── User cTrader OAuth connections ─────────────────────────────────────────
-    # Per-user broker links established via the cTrader Open API OAuth 2.0
-    # flow. One row per (sso_email, ctid_trader_account_id) pairing — a single
-    # SSO user may connect multiple cTrader accounts (live + demo, multi-broker).
-    # access_token / refresh_token are encrypted at rest using a Fernet key
-    # derived from ADMIN_JWT_SECRET (see auth.py / ctrader_oauth.py).
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS user_ctrader_connections (
-            id                       SERIAL PRIMARY KEY,
-            sso_email                TEXT NOT NULL,
-            ctid_trader_account_id   BIGINT NOT NULL,
-            broker_name              TEXT,
-            account_label            TEXT,
-            is_live                  BOOLEAN NOT NULL,
-            currency                 TEXT,
-            access_token_enc         TEXT NOT NULL,
-            refresh_token_enc        TEXT NOT NULL,
-            access_token_expires_at  TIMESTAMPTZ NOT NULL,
-            scope                    TEXT,
-            connected_at             TIMESTAMPTZ DEFAULT NOW(),
-            last_refreshed_at        TIMESTAMPTZ,
-            revoked_at               TIMESTAMPTZ,
-            UNIQUE (sso_email, ctid_trader_account_id)
-        )
-    """)
-    cursor.execute("""
-        CREATE INDEX IF NOT EXISTS idx_uctc_email_active
-        ON user_ctrader_connections(sso_email)
-        WHERE revoked_at IS NULL
-    """)
+    # ── Trade-domain tables MIGRATED to PG17 (2026-05-18) ─────────────────────
+    # bot_heartbeats, bot_positions, bot_events, oracle_alerts,
+    # user_ctrader_connections, plus 9 other Trade tables (trades, signal_*,
+    # price_alerts, exchange_keys, ensemble_predictions, user_preferences,
+    # trial_*, daily_briefing_subs) now live in PG17 glitch_trade.public and are
+    # exposed back into this database as FOREIGN TABLES via postgres_fdw server
+    # 'pg17_trade'. Schema is managed by glitch-trade-api migrations, NOT here.
+    # This function only manages admin-domain tables (admin_users, audit_log).
     conn.commit()
     cursor.close()
     conn.close()
