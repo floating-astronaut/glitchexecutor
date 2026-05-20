@@ -11,9 +11,42 @@ Body text (if present) shown as indented sub-bullets.
 
 ---
 
+## 2026-05-20
+
+- **18:47 UTC** — auto-sync: 2026-05-20 18:47 UTC (`9ca162f`) — 1 file
+        M	docker-compose.yml
+
 ## 2026-05-18
 
-- **02:32 UTC** — auto-sync: 2026-05-18 02:32 UTC (`4d81662`) — 1 file
+- **06:26 UTC** — chore(ADMIN-SETTINGS-REFRESH): refresh ENV_VARS_TO_CHECK to current 2026 vars (`eed8dab`) — 1 file
+    The /api/settings/env-status list was stale — referenced
+    TELEGRAM_WEBHOOK_SECRET (gone from the codebase) and was missing the
+    cTrader OAuth, payment-server, trade-admin, Redis, and SSO vars that
+    admin_api genuinely depends on today.
+    New list (19 vars, grouped by purpose in the comment block):
+      Auth + bootstrap:     ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_JWT_SECRET
+      Databases:            DATABASE_URL, ML_DATABASE_URL, SA_DATABASE_URL,
+                            REDIS_HOST, REDIS_PORT
+      Upstream proxies:     PAYMENT_SERVICE_URL, GROW_FULFILL_SECRET,
+                            TRADE_API_URL, TRADE_ADMIN_API_SECRET
+- **05:52 UTC** — feat(ADMIN-INFRA-1a): ingest SERVER_*.md system map into admin_api (`11fcfc0`) — 6 files
+    Backend for the Server Map view in the admin dashboard. Per
+    glitch-admin-dashboard/docs/INFRA_VIEW_PLAN.md. Cache lives in the
+    existing Admin Docker PG16 (no new database / container / queue);
+    source-of-truth stays the Markdown files in
+    /home/support/glitch-trade-app/docs/SERVER_*.md.
+    New files
+      admin_api/tasks/__init__.py
+      admin_api/tasks/infra_docs_sync.py
+        Reads SERVER_*.md (12 sectional + log + checklist = 14 files)
+        from the local glitch-trade-app docs checkout, content-hashes
+- **02:34 UTC** — docs: record item-6 PG migration attempt + rollback (2026-05-18) (`a2f2d3f`) — 1 file
+    postgres_fdw approach failed due to SERIAL+FDW limitation.
+    Native PG16 tables restored. Source-side CREATE TABLE removals
+    in admin_api/db.py + payment/server.py kept (harmless against the
+    rolled-back state, helpful starting point for future attempt).
+    Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+- **02:32 UTC** — auto-sync: 2026-05-18 02:32 UTC (`01cf61c`) — 2 files
         M	payment/server.py
 - **02:17 UTC** — auto-sync: 2026-05-18 02:17 UTC (`a6323f9`) — 2 files
         M	admin_api/db.py
@@ -307,37 +340,3 @@ Body text (if present) shown as indented sub-bullets.
 
 - **22:17 UTC** — Initial commit — Glitch Executor platform, dashboard, and website (`11453be`) — 171 files
     Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
-
-## 2026-05-18 — item-6 PG migration attempt (partially attempted, rolled back)
-
-Attempted to migrate 14 Trade-domain tables (trades, bot_*, exchange_keys,
-user_ctrader_connections, trial_*, etc.) from the Admin Docker PG16
-container to PG17 `glitch_trade` via postgres_fdw. Hit a fundamental
-FDW limitation: postgres_fdw INSERTs explicitly include all columns
-including SERIAL `id` columns set to NULL, which violates PG17's
-NOT NULL constraint (the remote sequence default only auto-fills when
-the column is OMITTED from the INSERT, not when it's set to NULL).
-
-Rolled back to native PG16 tables (restored from
-gs://glitch-vm-transfer/db-backups/2026-05-18/glitchexecutor-pg16-pre-pg17-migration.sql.gz).
-
-Source-side artifacts preserved:
-- `admin_api/db.py` no longer recreates the 5 Trade tables in
-  `run_migrations()` (only `admin_users` + `audit_log` remain).
-- `payment/server.py` no longer recreates `trial_messages_log` or
-  `glitch_grow_buyers` (BSK retirement removed the latter anyway).
-
-These changes are harmless against the rolled-back PG16 state (the
-CREATE TABLE IF NOT EXISTS blocks were no-ops because the tables
-already exist). They become the right shape for a future migration
-attempt using the Flask dual-pool code-refactor approach instead of
-postgres_fdw.
-
-PG17 changes:
-- `listen_addresses` kept widened to `'localhost,172.17.0.1'`
-  (harmless without a matching pg_hba rule).
-- Docker-bridge pg_hba rule removed.
-
-Future-attempt notes: do not retry postgres_fdw. Use a Flask dual
-connection-pool refactor (35 query sites across 5 files: payment/server.py
-+ admin_api/routers/{admin_mgmt,clients,ctrader_oauth,webhook}.py).
