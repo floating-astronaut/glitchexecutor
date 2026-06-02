@@ -115,10 +115,10 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${PG_USER:-glitch}:${PG_PASSWORD:-changeme}@postgres:5432/glitchexecutor
-      # Read-only access to host postgres glitch_ml DB (Ouroboros trading data) via mounted unix socket
-      ML_DATABASE_URL: postgresql://glitchml_ro:${ML_RO_PASSWORD}@/glitch_ml?host=/var/run/postgresql
-      # Read-only access to host postgres glitch_sales_agent (Glitch Budz)
-      SA_DATABASE_URL: postgresql://glitch_sa_ro:${SA_RO_PASSWORD}@/glitch_sales_agent?host=/var/run/postgresql&options=-c%20search_path%3Dsales_agent%2Cpublic
+      # NOTE: ML_DATABASE_URL (glitch_ml/Ouroboros) and SA_DATABASE_URL
+      # (glitch_sales_agent) removed 2026-06-01 — the snake bot + ML stack
+      # is retired and the sales_agent DB/role never existed. Re-add with
+      # fresh read-only role passwords if those verticals come back.
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       SSO_VALIDATE_URL: ${SSO_VALIDATE_URL:-https://sso.glitchexecutor.com/auth/validate}
@@ -132,7 +132,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       DOCKER_HOST: tcp://docker-proxy:2375
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}
-      TRADE_WEBHOOK_SECRET: ${TRADE_WEBHOOK_SECRET}
+      # TRADE_WEBHOOK_SECRET removed 2026-06-01 — its only senders were the
+      # retired snake bot servers; the /api/trades/webhook receiver has no
+      # remaining callers.
       # Customer-management proxy → payment service (Grow buyers + leads)
       GROW_FULFILL_SECRET: ${GROW_FULFILL_SECRET}
       PAYMENT_SERVICE_URL: http://payment:5002
